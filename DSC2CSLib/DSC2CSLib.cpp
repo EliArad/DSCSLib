@@ -40,11 +40,16 @@ DSC2CSLIB_API void DSShow_SetWindowHandle(HWND hwnd)
 	m_dsShowPlayer.SetWindowHandle(hwnd);
 }
 
-DSC2CSLIB_API void DSShow_Initialize(HWND hwnd)
+DSC2CSLIB_API HRESULT DSShow_InitializePlayer(HWND hwnd)
 {
-	m_dsShowPlayer.Initilize(hwnd);
-
+	return m_dsShowPlayer.InitilizePlayer(hwnd);
 } 
+
+DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio)
+{
+	return m_dsShowPlayer.InitilizeRSTPSource(hwnd, url, Audio);
+}
+
 DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height)
 {
 	RECT r;

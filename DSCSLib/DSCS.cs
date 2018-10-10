@@ -19,10 +19,9 @@ namespace DSCSLib
             LEADTOOLS
         }
 
-        const string dsPath = @"D:\Program Files\Microsoft SDKs\Windows\v7.0\Samples\multimedia\directshow\baseclasses\Debug\DSC2CSLib.dll";
-
         
-
+        const string dsPath = @"D:\Projects\DSLibrary\Debug\DSC2CSLib.dll";
+         
         [DllImport(dsPath, CallingConvention= CallingConvention.Cdecl)]
         public static extern int DSShow_SetFileName([MarshalAs(UnmanagedType.LPWStr)]String sFileName);
 
@@ -38,7 +37,11 @@ namespace DSCSLib
         public static extern int DSShow_SetWindowHandle(IntPtr handle);
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int DSShow_Initialize([MarshalAs(UnmanagedType.SysInt)]IntPtr handle);
+        public static extern int DSShow_InitializePlayer([MarshalAs(UnmanagedType.SysInt)]IntPtr handle);
+
+        [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int DSShow_InitilizeRSTPSource([MarshalAs(UnmanagedType.SysInt)]IntPtr handle, [MarshalAs(UnmanagedType.LPWStr)]String url, bool audio);
+        
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
         public static extern int DSShow_SelectDecoder(int selectedDecoder);
@@ -68,9 +71,14 @@ namespace DSCSLib
         {
             return DSShow_Stop();
         }
-        public void Initialize(IntPtr handle)
+        public int InitializePlayer(IntPtr handle)
         {
-            DSShow_Initialize(handle);
+            return DSShow_InitializePlayer(handle);
+        }
+
+        public int InitilizeRSTPSource(IntPtr handle, string url, bool audio)
+        {
+            return DSShow_InitilizeRSTPSource(handle, url, audio);
         }
 
         public void SelectDecoder(SELECTED_DECODER decoder)

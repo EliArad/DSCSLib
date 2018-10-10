@@ -20,14 +20,6 @@ namespace DSCSPlayer
         public Form1()
         {
             InitializeComponent();
-
-
-            //m_player.SetFileName(@"C:\Users\elia\Downloads\Truck.ts");
-            m_player.SetFileName(@"C:\savevideo.h264");
-            m_player.Initialize(panel1.Handle);
-            m_player.SelectDecoder(SELECTED_DECODER.ELECARD);
-            Rect r = new Rect(0, 0, panel1.Width, panel1.Height);
-            m_player.UpdateVideoWindow(r);
         }
 
         private void btnPlay_Click(object sender, EventArgs e)
@@ -86,6 +78,26 @@ namespace DSCSPlayer
                 Rect r = new Rect(0, 0, panel2.Width, panel1.Height);
                 m_player.UpdateVideoWindow(r);
             }
+        }
+
+        private void btnPlayerExample_Click(object sender, EventArgs e)
+        {
+
+            m_player.SetFileName(@"C:\Users\elia\Downloads\Truck.ts");
+            //m_player.SetFileName(@"C:\savevideo.h264");
+            m_player.SelectDecoder(SELECTED_DECODER.ELECARD);
+            m_player.InitializePlayer(panel1.Handle);            
+            Rect r = new Rect(0, 0, panel1.Width, panel1.Height);
+            m_player.UpdateVideoWindow(r);
+        }
+
+        private void btnRTSP_Click(object sender, EventArgs e)
+        {
+            m_player.SetFileName(@"C:\savevideo.h264");
+            m_player.SelectDecoder(SELECTED_DECODER.ELECARD);
+            m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false);            
+            Rect r = new Rect(0, 0, panel1.Width, panel1.Height);
+            m_player.UpdateVideoWindow(r);
         }
     }
 }

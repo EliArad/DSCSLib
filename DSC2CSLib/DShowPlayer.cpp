@@ -87,7 +87,7 @@ void DShowPlayer::SetFileName(const WCHAR* sFileName)
 	 
 }
 
-HRESULT DShowPlayer::Initilize(HWND hwnd)
+HRESULT DShowPlayer::InitilizePlayer(HWND hwnd)
 {
 	HRESULT hr = S_OK;
 	m_hwndVideo = hwnd;
@@ -116,6 +116,195 @@ HRESULT DShowPlayer::Initilize(HWND hwnd)
 	}
 
     // Set the volume.
+	if (SUCCEEDED(hr))
+	{
+		hr = UpdateVolume();
+	}
+
+	// Update our state.
+	if (SUCCEEDED(hr))
+	{
+		m_state = STATE_STOPPED;
+	}
+
+	SAFE_RELEASE(pSource);
+
+	return hr;
+}
+
+
+HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio)
+{
+	HRESULT hr = S_OK;
+	m_hwndVideo = hwnd;
+
+	IBaseFilter *pSource = NULL;
+
+	// Create a new filter graph. (This also closes the old one, if any.)
+	hr = InitializeGraph();
+
+	// Add the source filter to the graph.
+	 
+	BOOL bRenderedAnyPin = FALSE;
+
+	IFilterGraph2 *pGraph2 = NULL;
+	IEnumPins *pEnum = NULL;
+	IBaseFilter *pAudioRenderer = NULL;
+	IBaseFilter *pElecardVideoRenderer = NULL;
+	IBaseFilter *pLeadToolsVideoRenderer = NULL;
+	IBaseFilter *pLeadToolsRTSPSource = NULL;
+
+	hr = m_pGraph->QueryInterface(IID_IFilterGraph2, (void**)&pGraph2);
+
+	// Add the video renderer to the graph
+	if (SUCCEEDED(hr))
+	{
+		hr = CreateVideoRenderer();
+	}
+
+	static const GUID CLSID_LEADTOOLS_RTSP_SOURCE =
+	{ 0xE2B7DE48, 0x38C5, 0x11D5,{ 0x91, 0xF6, 0x00, 0x10, 0x4B, 0xDB, 0x8F, 0xF9 } };
+	
+	hr = AddFilterByCLSID(m_pGraph, CLSID_LEADTOOLS_RTSP_SOURCE, &pLeadToolsRTSPSource, L"LEAD Tools RTSP Source");
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	// {56a868a6-0ad4-11ce-b03a-0020af0ba770}
+	static const GUID iid_IFileSourceFilter = {
+		0x56a868a6, 0x0ad4, 0x11ce,{ 0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 } };
+
+	IFileSourceFilter * pFS;      // Sets the file name on the ASF readewr.
+	hr = pLeadToolsRTSPSource->QueryInterface(IID_IFileSourceFilter, (void **)&pFS);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	// Load the source file.
+	hr = pFS->Load(url, NULL);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	 
+
+
+	if (Audio == true)
+	{	// Add the DSound Renderer to the graph.
+		if (SUCCEEDED(hr))
+		{
+			hr = AddFilterByCLSID(m_pGraph, CLSID_DSoundRender, &pAudioRenderer, L"Audio Renderer");
+		}
+	}
+
+
+	if (m_selectedDecoder == SELECTED_DECODER::ELECARD && SUCCEEDED(hr))
+	{
+		// {5C122C6D-8FCC-46f9-AAB7-DCFB0841E04D}
+		static const GUID CLSID_EAVCDEC =
+		{ 0x5c122c6D, 0x8fcc, 0x46f9,{ 0xaa, 0xb7, 0xdc, 0xfb, 0x8, 0x41, 0xe0, 0x4d } };
+
+		hr = AddFilterByCLSID(m_pGraph, CLSID_EAVCDEC, &pElecardVideoRenderer, L"Elecard AVC Video Decoder");
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+
+	if (m_selectedDecoder == SELECTED_DECODER::LEADTOOLS && SUCCEEDED(hr))
+	{
+		static const GUID CLSID_LEADTOOLS_H264_DECODER =
+		{ 0xE2B7DF25,0x38C5,0x11D5,{ 0x91,0xF6, 0x00, 0x10, 0x4B , 0xDB ,0x8F , 0xF9 } };
+
+		hr = AddFilterByCLSID(m_pGraph, CLSID_LEADTOOLS_H264_DECODER, &pLeadToolsVideoRenderer, L"LeadTools AVC Video Decoder");
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+
+ 
+
+	// Enumerate the pins on the source filter.
+	if (SUCCEEDED(hr))
+	{
+		hr = pLeadToolsRTSPSource->EnumPins(&pEnum);
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		// Loop through all the pins
+		IPin *pPin = NULL;
+
+		while (S_OK == pEnum->Next(1, &pPin, NULL))
+		{
+			// Try to render this pin. 
+			// It's OK if we fail some pins, if at least one pin renders.
+			HRESULT hr2 = pGraph2->RenderEx(pPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+
+			pPin->Release();
+
+			if (SUCCEEDED(hr2))
+			{
+				bRenderedAnyPin = TRUE;
+			}
+		}
+	}
+ 
+
+
+	// Remove un-used renderers.
+
+	// Try to remove the VMR.
+	if (SUCCEEDED(hr))
+	{
+		hr = m_pVideo->FinalizeGraph(m_pGraph);
+	}
+
+#if 0 
+	// Try to remove the audio renderer.
+	if (SUCCEEDED(hr))
+	{
+		BOOL bRemoved = FALSE;
+		hr = RemoveUnconnectedRenderer(m_pGraph, pAudioRenderer, &bRemoved);
+
+		if (bRemoved)
+		{
+			m_bAudioStream = FALSE;
+		}
+		else
+		{
+			m_bAudioStream = TRUE;
+		}
+	}
+#endif 
+
+	SAFE_RELEASE(pEnum);
+	//SAFE_RELEASE(pVMR);
+	SAFE_RELEASE(pAudioRenderer);
+	SAFE_RELEASE(pGraph2);
+
+	// If we succeeded to this point, make sure we rendered at least one 
+	// stream.
+	if (SUCCEEDED(hr))
+	{
+		if (!bRenderedAnyPin)
+		{
+			hr = VFW_E_CANNOT_RENDER;
+		}
+	}
+  
+
+	// Get the seeking capabilities.
+	if (SUCCEEDED(hr))
+	{
+		hr = m_pSeek->GetCapabilities(&m_seekCaps);
+	}
+
+	// Set the volume.
 	if (SUCCEEDED(hr))
 	{
 		hr = UpdateVolume();

@@ -14,14 +14,13 @@
 extern "C"
 {
 	DSC2CSLIB_API int Test(void);
-
-	DSC2CSLIB_API HRESULT DSShow_PlayFile(const WCHAR* sFileName);
 	DSC2CSLIB_API HRESULT DSShow_Play();
 	DSC2CSLIB_API HRESULT DSShow_Stop();
 	DSC2CSLIB_API HRESULT DSShow_Pause();
 	DSC2CSLIB_API void DSShow_SetWindowHandle(HWND hwnd);
 	DSC2CSLIB_API void DSShow_SetFileName(const WCHAR* sFileName);
-	DSC2CSLIB_API void DSShow_Initialize(HWND hwnd);
+	DSC2CSLIB_API HRESULT DSShow_InitializePlayer(HWND hwnd);
+	DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio);
 	DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height);
 	DSC2CSLIB_API  void DSShow_SelectDecoder(int selectedDecoder);
 

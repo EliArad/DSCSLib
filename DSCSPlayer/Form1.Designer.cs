@@ -34,6 +34,8 @@
             this.btnPause = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.btnPlayerExample = new System.Windows.Forms.Button();
+            this.btnRTSP = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // panel1
@@ -98,11 +100,33 @@
             this.panel2.Size = new System.Drawing.Size(524, 376);
             this.panel2.TabIndex = 1;
             // 
+            // btnPlayerExample
+            // 
+            this.btnPlayerExample.Location = new System.Drawing.Point(643, 405);
+            this.btnPlayerExample.Name = "btnPlayerExample";
+            this.btnPlayerExample.Size = new System.Drawing.Size(97, 23);
+            this.btnPlayerExample.TabIndex = 5;
+            this.btnPlayerExample.Text = "Player example";
+            this.btnPlayerExample.UseVisualStyleBackColor = true;
+            this.btnPlayerExample.Click += new System.EventHandler(this.btnPlayerExample_Click);
+            // 
+            // btnRTSP
+            // 
+            this.btnRTSP.Location = new System.Drawing.Point(796, 405);
+            this.btnRTSP.Name = "btnRTSP";
+            this.btnRTSP.Size = new System.Drawing.Size(97, 23);
+            this.btnRTSP.TabIndex = 6;
+            this.btnRTSP.Text = "RTSP Example";
+            this.btnRTSP.UseVisualStyleBackColor = true;
+            this.btnRTSP.Click += new System.EventHandler(this.btnRTSP_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1247, 459);
+            this.Controls.Add(this.btnRTSP);
+            this.Controls.Add(this.btnPlayerExample);
             this.Controls.Add(this.panel2);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.btnPause);
@@ -125,6 +149,8 @@
         private System.Windows.Forms.Button btnPause;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Button btnPlayerExample;
+        private System.Windows.Forms.Button btnRTSP;
     }
 }
 

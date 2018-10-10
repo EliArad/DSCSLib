@@ -92,7 +92,8 @@ public:
 	PlaybackState State() const { return m_state; }
 
 	void SetFileName(const WCHAR* sFileName);
-	HRESULT Initilize(HWND hwnd);
+	HRESULT InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio);
+	HRESULT InitilizePlayer(HWND hwnd);
 	
 	// Streaming
 	HRESULT Play();

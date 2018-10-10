@@ -45,9 +45,9 @@ DSC2CSLIB_API HRESULT DSShow_InitializePlayer(HWND hwnd)
 	return m_dsShowPlayer.InitilizePlayer(hwnd);
 } 
 
-DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio)
+DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName)
 {
-	return m_dsShowPlayer.InitilizeRSTPSource(hwnd, url, Audio);
+	return m_dsShowPlayer.InitilizeRSTPSource(hwnd, url, Audio , ShapeFilter, SaveToFile, saveFileName);
 }
 
 DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height)
@@ -69,5 +69,92 @@ DSC2CSLIB_API  void DSShow_SelectDecoder(int selectedDecoder)
 
 
 
+DSC2CSLIB_API HRESULT DSShow_AddCircle(int id,
+									   int x1,
+									   int y1,
+									   int radios_w,
+									   int radios_h,
+									   COLORREF color,
+									   int width)
+{
 
- 
+
+	return m_dsShowPlayer.AddCircle(id,
+									 x1,
+									 y1,
+									 radios_w,
+									 radios_h,
+									 color,
+									 width);
+
+}
+
+DSC2CSLIB_API HRESULT DSShow_AddLine(int id,
+	int x1,
+	int y1,
+	int x2,
+	int y2,
+	int color,
+	int width)
+{
+
+	return m_dsShowPlayer.AddLine(id,
+		x1,
+		y1,
+		x2,
+		y2,
+		color,
+		width);
+}
+
+
+HRESULT	DSShow_Remove(int id)
+{
+	return m_dsShowPlayer.Remove(id);
+}
+HRESULT	DSShow_Clear()
+{
+	return m_dsShowPlayer.Clear();
+}
+
+
+HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
+	int left,
+	int top,
+	int right,
+	int bottom,
+	int color,
+	float fontSize)
+{
+	return m_dsShowPlayer.AddTextOverlay2(text, id,
+		 left,
+		 top,
+		 right,
+		 bottom,
+		 color,
+		fontSize);
+
+}
+
+HRESULT	DSShow_AddTextOverlay(WCHAR *text,
+	int id,
+	int left,
+	int top,
+	int right,
+	int bottom,
+	int color,
+	float fontSize,
+	int fontStyle)
+{
+	return m_dsShowPlayer.AddTextOverlay(text,
+		id,
+		left,
+		top,
+		right,
+		bottom,
+		color,
+		fontSize,
+		fontStyle);
+
+}
+

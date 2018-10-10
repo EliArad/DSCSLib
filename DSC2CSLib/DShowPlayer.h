@@ -92,7 +92,7 @@ public:
 	PlaybackState State() const { return m_state; }
 
 	void SetFileName(const WCHAR* sFileName);
-	HRESULT InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio);
+	HRESULT InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName);
 	HRESULT InitilizePlayer(HWND hwnd);
 	
 	// Streaming
@@ -122,9 +122,44 @@ public:
 	HRESULT	SetVolume(long lVolume);
 	long	GetVolume() const { return m_lVolume; }
 
+	// Shapes
+	 
+
+	HRESULT	AddCircle(int id, int x1, int y1, int radios_w, int radios_h, COLORREF color, int width);
+	HRESULT	AddTextOverlay(WCHAR *text,
+		int id,
+		int left,
+		int top,
+		int right,
+		int bottom,
+		int color,
+		float fontSize,
+		int fontStyle);
+
+	HRESULT	AddLine(int id,
+		int x1,
+		int y1,
+		int x2,
+		int y2,
+		int color,
+		int width);
+
+
+	HRESULT	Remove(int id);
+	HRESULT	Clear();
+	HRESULT	AddTextOverlay2(WCHAR *text, int id,
+		int left,
+		int top,
+		int right,
+		int bottom,
+		int color,
+		float fontSize);
+
+	 
+
 private:
 
-
+	HRESULT GetPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin, int num = 0);
 	HRESULT InitializeGraph();
 	void	TearDownGraph();
     HRESULT CreateVideoRenderer();
@@ -152,7 +187,15 @@ private:
 	IMediaSeeking	*m_pSeek;
 	IBasicAudio		*m_pAudio;
 
+	IBaseFilter *pAudioRenderer;
+	IBaseFilter *pVideoDecoder;
+	IBaseFilter *pLeadToolsRTSPSource;
+	IBaseFilter *pShapeFilter;
+	IBaseFilter *pInfTeeFilter;
+	IBaseFilter *pSinkFilter;
+	 
     BaseVideoRenderer   *m_pVideo;
+	IShapeSourceFilter * pShapeFilterInterface;
 
 };
 

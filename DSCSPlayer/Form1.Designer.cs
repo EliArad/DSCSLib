@@ -36,6 +36,7 @@
             this.panel2 = new System.Windows.Forms.Panel();
             this.btnPlayerExample = new System.Windows.Forms.Button();
             this.btnRTSP = new System.Windows.Forms.Button();
+            this.button2 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // panel1
@@ -46,12 +47,12 @@
             this.panel1.BackColor = System.Drawing.Color.Black;
             this.panel1.Location = new System.Drawing.Point(5, 3);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(524, 376);
+            this.panel1.Size = new System.Drawing.Size(524, 477);
             this.panel1.TabIndex = 0;
             // 
             // btnPlay
             // 
-            this.btnPlay.Location = new System.Drawing.Point(61, 405);
+            this.btnPlay.Location = new System.Drawing.Point(66, 490);
             this.btnPlay.Name = "btnPlay";
             this.btnPlay.Size = new System.Drawing.Size(75, 23);
             this.btnPlay.TabIndex = 1;
@@ -61,7 +62,7 @@
             // 
             // btnStop
             // 
-            this.btnStop.Location = new System.Drawing.Point(198, 405);
+            this.btnStop.Location = new System.Drawing.Point(203, 490);
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(75, 23);
             this.btnStop.TabIndex = 2;
@@ -71,7 +72,7 @@
             // 
             // btnPause
             // 
-            this.btnPause.Location = new System.Drawing.Point(330, 405);
+            this.btnPause.Location = new System.Drawing.Point(335, 490);
             this.btnPause.Name = "btnPause";
             this.btnPause.Size = new System.Drawing.Size(75, 23);
             this.btnPause.TabIndex = 3;
@@ -81,7 +82,7 @@
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(493, 405);
+            this.button1.Location = new System.Drawing.Point(498, 490);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 4;
@@ -97,12 +98,12 @@
             this.panel2.BackColor = System.Drawing.Color.Black;
             this.panel2.Location = new System.Drawing.Point(574, 3);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(524, 376);
+            this.panel2.Size = new System.Drawing.Size(524, 477);
             this.panel2.TabIndex = 1;
             // 
             // btnPlayerExample
             // 
-            this.btnPlayerExample.Location = new System.Drawing.Point(643, 405);
+            this.btnPlayerExample.Location = new System.Drawing.Point(648, 490);
             this.btnPlayerExample.Name = "btnPlayerExample";
             this.btnPlayerExample.Size = new System.Drawing.Size(97, 23);
             this.btnPlayerExample.TabIndex = 5;
@@ -112,19 +113,30 @@
             // 
             // btnRTSP
             // 
-            this.btnRTSP.Location = new System.Drawing.Point(796, 405);
+            this.btnRTSP.Location = new System.Drawing.Point(801, 490);
             this.btnRTSP.Name = "btnRTSP";
-            this.btnRTSP.Size = new System.Drawing.Size(97, 23);
+            this.btnRTSP.Size = new System.Drawing.Size(136, 23);
             this.btnRTSP.TabIndex = 6;
-            this.btnRTSP.Text = "RTSP Example";
+            this.btnRTSP.Text = "RTSP Example + Save";
             this.btnRTSP.UseVisualStyleBackColor = true;
             this.btnRTSP.Click += new System.EventHandler(this.btnRTSP_Click);
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(962, 490);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(136, 23);
+            this.button2.TabIndex = 7;
+            this.button2.Text = "RTSP Example no Save";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1247, 459);
+            this.ClientSize = new System.Drawing.Size(1247, 560);
+            this.Controls.Add(this.button2);
             this.Controls.Add(this.btnRTSP);
             this.Controls.Add(this.btnPlayerExample);
             this.Controls.Add(this.panel2);
@@ -151,6 +163,7 @@
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Button btnPlayerExample;
         private System.Windows.Forms.Button btnRTSP;
+        private System.Windows.Forms.Button button2;
     }
 }
 

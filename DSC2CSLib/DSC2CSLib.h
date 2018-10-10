@@ -20,8 +20,51 @@ extern "C"
 	DSC2CSLIB_API void DSShow_SetWindowHandle(HWND hwnd);
 	DSC2CSLIB_API void DSShow_SetFileName(const WCHAR* sFileName);
 	DSC2CSLIB_API HRESULT DSShow_InitializePlayer(HWND hwnd);
-	DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio);
+	DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName);
 	DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height);
 	DSC2CSLIB_API  void DSShow_SelectDecoder(int selectedDecoder);
+
+
+	DSC2CSLIB_API HRESULT DSShow_AddCircle(int id,
+											int x1,
+											int y1,
+											int radios_w,
+											int radios_h,
+											COLORREF color,
+											int width);
+
+
+
+	DSC2CSLIB_API HRESULT DSShow_AddLine(int id,
+										int x1,
+										int y1,
+										int x2,
+										int y2,
+										int color,
+										int width);
+
+
+	HRESULT	DSShow_Remove(int id);
+	HRESULT	DSShow_Clear();
+
+
+	HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
+		int left,
+		int top,
+		int right,
+		int bottom,
+		int color,
+		float fontSize);;
+
+	HRESULT	DSShow_AddTextOverlay(WCHAR *text,
+		int id,
+		int left,
+		int top,
+		int right,
+		int bottom,
+		int color,
+		float fontSize,
+		int fontStyle);
+
 
 }

@@ -34,6 +34,7 @@ DShowPlayer::DShowPlayer() :
 	m_lVolume(MAX_VOLUME)
 {
 	 
+	pShapeFilterInterface = NULL;
 
 }
 
@@ -87,6 +88,51 @@ void DShowPlayer::SetFileName(const WCHAR* sFileName)
 	 
 }
 
+HRESULT DShowPlayer::GetPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin, int num)
+{
+	IEnumPins  *pEnum = NULL;
+	IPin       *pPin = NULL;
+	HRESULT    hr;
+
+	if (ppPin == NULL)
+	{
+		return E_POINTER;
+	}
+
+	int count = 0;
+
+	hr = pFilter->EnumPins(&pEnum);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+	while (pEnum->Next(1, &pPin, 0) == S_OK)
+	{
+		PIN_DIRECTION PinDirThis;
+		hr = pPin->QueryDirection(&PinDirThis);
+		if (FAILED(hr))
+		{
+			pPin->Release();
+			pEnum->Release();
+			return hr;
+		}
+		if (PinDir == PinDirThis && count == num)
+		{
+			// Found a match. Return the IPin pointer to the caller.
+			*ppPin = pPin;
+			pEnum->Release();
+			return S_OK;
+		}
+		if (PinDir == PinDirThis)
+			count++;
+		// Release the pin for the next time through the loop.
+		pPin->Release();
+	}
+	// No more pins. We did not find a match.
+	pEnum->Release();
+	return E_FAIL;
+}
+
 HRESULT DShowPlayer::InitilizePlayer(HWND hwnd)
 {
 	HRESULT hr = S_OK;
@@ -133,7 +179,12 @@ HRESULT DShowPlayer::InitilizePlayer(HWND hwnd)
 }
 
 
-HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio)
+HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, 
+										 const WCHAR *url, 
+										 bool Audio, 
+										 bool ShapeFilter,
+										 bool SaveToFile,
+										 const WCHAR *saveFileName)
 {
 	HRESULT hr = S_OK;
 	m_hwndVideo = hwnd;
@@ -146,13 +197,10 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio
 	// Add the source filter to the graph.
 	 
 	BOOL bRenderedAnyPin = FALSE;
-
+	IFileSourceFilter * pFS = NULL;
 	IFilterGraph2 *pGraph2 = NULL;
 	IEnumPins *pEnum = NULL;
-	IBaseFilter *pAudioRenderer = NULL;
-	IBaseFilter *pElecardVideoRenderer = NULL;
-	IBaseFilter *pLeadToolsVideoRenderer = NULL;
-	IBaseFilter *pLeadToolsRTSPSource = NULL;
+
 
 	hr = m_pGraph->QueryInterface(IID_IFilterGraph2, (void**)&pGraph2);
 
@@ -171,11 +219,11 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio
 		return hr;
 	}
 
-	// {56a868a6-0ad4-11ce-b03a-0020af0ba770}
-	static const GUID iid_IFileSourceFilter = {
+
+	static const GUID IID_IFileSourceFilter = {
 		0x56a868a6, 0x0ad4, 0x11ce,{ 0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 } };
 
-	IFileSourceFilter * pFS;      // Sets the file name on the ASF readewr.
+	 
 	hr = pLeadToolsRTSPSource->QueryInterface(IID_IFileSourceFilter, (void **)&pFS);
 	if (FAILED(hr))
 	{
@@ -189,6 +237,16 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio
 		return hr;
 	}
 
+	if (ShapeFilter == true)
+	{		 
+		static const GUID CLSID_ShapeFilter = {
+		  0xE52BEAB4 ,0x45FB ,0x4D5A , {0xBC,0x9E,0x23,0x81,0xE6,0x1D,0xCC ,0x47} };
+		hr = AddFilterByCLSID(m_pGraph, CLSID_ShapeFilter, &pShapeFilter, L"My Shape Filter");
+		if (FAILED(hr))
+		{
+			return hr;
+		}		
+	}
 	 
 
 
@@ -207,7 +265,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio
 		static const GUID CLSID_EAVCDEC =
 		{ 0x5c122c6D, 0x8fcc, 0x46f9,{ 0xaa, 0xb7, 0xdc, 0xfb, 0x8, 0x41, 0xe0, 0x4d } };
 
-		hr = AddFilterByCLSID(m_pGraph, CLSID_EAVCDEC, &pElecardVideoRenderer, L"Elecard AVC Video Decoder");
+		hr = AddFilterByCLSID(m_pGraph, CLSID_EAVCDEC, &pVideoDecoder, L"Elecard AVC Video Decoder");
 		if (FAILED(hr))
 		{
 			return hr;
@@ -219,49 +277,267 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio
 		static const GUID CLSID_LEADTOOLS_H264_DECODER =
 		{ 0xE2B7DF25,0x38C5,0x11D5,{ 0x91,0xF6, 0x00, 0x10, 0x4B , 0xDB ,0x8F , 0xF9 } };
 
-		hr = AddFilterByCLSID(m_pGraph, CLSID_LEADTOOLS_H264_DECODER, &pLeadToolsVideoRenderer, L"LeadTools AVC Video Decoder");
+		hr = AddFilterByCLSID(m_pGraph, CLSID_LEADTOOLS_H264_DECODER, &pVideoDecoder, L"LeadTools AVC Video Decoder");
 		if (FAILED(hr))
 		{
 			return hr;
 		}
 	}
 
- 
+	 
+	
 
-	// Enumerate the pins on the source filter.
-	if (SUCCEEDED(hr))
+	if (SaveToFile == true)
 	{
-		hr = pLeadToolsRTSPSource->EnumPins(&pEnum);
+
+		hr = AddFilterByCLSID(m_pGraph, CLSID_InfTee, &pInfTeeFilter, L"InfTee");
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		static const GUID CLSID_SinkFilter =
+		{ 0x36A5F770,0xFE4C,0x11CE,{ 0xA8,0xED, 0x00, 0xAA, 0x00, 0x2F, 0xEA, 0xB5 } };
+
+		hr = AddFilterByCLSID(m_pGraph, CLSID_SinkFilter, &pSinkFilter, L"Sink Filter");
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+	  
+		IFileSinkFilter  *iSink;
+		hr = pSinkFilter->QueryInterface(IID_IFileSinkFilter, (void **)&iSink);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		// Load the source file.
+		hr = iSink->SetFileName(saveFileName, NULL);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+	}
+   
+
+	 
+	PIN_INFO pininfo;
+	IPin *ppRTSPSourceVideoOutPin;
+	GetPin(pLeadToolsRTSPSource, PIN_DIRECTION::PINDIR_OUTPUT, &ppRTSPSourceVideoOutPin);
+	hr = ppRTSPSourceVideoOutPin->QueryPinInfo(&pininfo);
+	if (FAILED(hr))
+	{
+		return hr;
 	}
 
-	if (SUCCEEDED(hr))
+	
+	
+
+	if (SaveToFile == true)
 	{
-		// Loop through all the pins
-		IPin *pPin = NULL;
 
-		while (S_OK == pEnum->Next(1, &pPin, NULL))
+
+		IPin *ppInfteeInput;
+		GetPin(pInfTeeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppInfteeInput);
+		hr = ppInfteeInput->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
 		{
-			// Try to render this pin. 
-			// It's OK if we fail some pins, if at least one pin renders.
-			HRESULT hr2 = pGraph2->RenderEx(pPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+			return hr;
+		}
 
-			pPin->Release();
+		hr = pGraph2->Connect(ppRTSPSourceVideoOutPin, ppInfteeInput);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
 
-			if (SUCCEEDED(hr2))
+		IPin *ppinfTeeOutput1;
+		GetPin(pInfTeeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppinfTeeOutput1);
+		hr = ppinfTeeOutput1->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	 
+		IPin *ppVideoDecoderInPin;
+		GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_INPUT, &ppVideoDecoderInPin);
+		hr = ppVideoDecoderInPin->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+	 
+		IPin *ppDumpInput;
+		GetPin(pSinkFilter, PIN_DIRECTION::PINDIR_INPUT, &ppDumpInput);
+		hr = ppDumpInput->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		hr = pGraph2->Connect(ppinfTeeOutput1, ppDumpInput);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		IPin *ppinfTeeOutput2;
+		GetPin(pInfTeeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppinfTeeOutput2, 1);
+		hr = ppinfTeeOutput2->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		if (ShapeFilter == false)
+		{
+
+			hr = pGraph2->Connect(ppinfTeeOutput2, ppVideoDecoderInPin);
+			if (FAILED(hr))
 			{
-				bRenderedAnyPin = TRUE;
+				return hr;
 			}
+
+
+
+			IPin *ppVideoDecoderOutPin;
+			GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
+			hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+			hr = pGraph2->RenderEx(ppVideoDecoderOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+
+		}
+		else		
+		{
+
+			IPin *ppShapeFilterInPin;
+			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppShapeFilterInPin);
+			hr = ppShapeFilterInPin->QueryPinInfo(&pininfo);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+			hr = pGraph2->Connect(ppinfTeeOutput2, ppVideoDecoderInPin);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+
+
+			IPin *ppVideoDecoderOutPin;
+			GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
+			hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+
+			hr = pGraph2->Connect(ppVideoDecoderOutPin, ppShapeFilterInPin);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+			IPin *ppShapeFilterOutPin;
+			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppShapeFilterOutPin);
+			hr = ppShapeFilterOutPin->QueryPinInfo(&pininfo);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+			 
+			hr = pGraph2->RenderEx(ppShapeFilterOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+			//hr = pGraph2->Render(ppShapeFilterOutPin);
+
 		}
 	}
+	else 
+	{
+		// no save 
+		IPin *ppVideoDecoderInPin;
+		GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_INPUT, &ppVideoDecoderInPin);
+		hr = ppVideoDecoderInPin->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		if (ShapeFilter == true)
+		{
+			IPin *ppShapeFilterInPin;
+			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppShapeFilterInPin);
+			hr = ppShapeFilterInPin->QueryPinInfo(&pininfo);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+			hr = pGraph2->Connect(ppRTSPSourceVideoOutPin, ppShapeFilterInPin);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+			IPin *ppShapeFilterOutPin;
+			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppShapeFilterOutPin);
+			hr = ppShapeFilterOutPin->QueryPinInfo(&pininfo);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+			hr = pGraph2->RenderEx(ppShapeFilterOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}
+		else
+		{
+			hr = pGraph2->Connect(ppRTSPSourceVideoOutPin, ppVideoDecoderInPin);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+
+			IPin *ppVideoDecoderOutPin;
+			GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
+			hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+			hr = pGraph2->RenderEx(ppVideoDecoderOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+			//hr = pGraph2->Render(ppVideoDecoderOutPin);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}	 
+	}
+
  
-
-
-	// Remove un-used renderers.
-
-	// Try to remove the VMR.
 	if (SUCCEEDED(hr))
 	{
 		hr = m_pVideo->FinalizeGraph(m_pGraph);
+	}
+
+
+	// Update our state.
+	if (SUCCEEDED(hr))
+	{
+		m_state = STATE_STOPPED;
 	}
 
 #if 0 
@@ -281,7 +557,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio
 		}
 	}
 #endif 
-
+	SAFE_RELEASE(pGraph2);
 	SAFE_RELEASE(pEnum);
 	//SAFE_RELEASE(pVMR);
 	SAFE_RELEASE(pAudioRenderer);
@@ -930,3 +1206,191 @@ HRESULT RemoveUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer,
 
 	return hr;
 }
+
+
+HRESULT	DShowPlayer::AddCircle(int id,
+	int x1,
+	int y1,
+	int radios_w,
+	int radios_h,
+	COLORREF color,
+	int width)
+{
+	HRESULT hr;
+
+	
+	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
+	static const GUID IID_ITextAdditor =
+	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
+
+	if (pShapeFilterInterface == NULL)
+	{
+		hr = pShapeFilter->QueryInterface(IID_ITextAdditor, (void **)&pShapeFilterInterface);
+		if (FAILED(hr))
+		{
+			return hr;
+
+		}
+	}
+ 
+
+	return pShapeFilterInterface->AddCircle(id,
+		x1,
+		y1,
+		radios_w,
+		radios_h,
+		color,
+		width);
+
+}
+ 
+HRESULT	DShowPlayer::AddTextOverlay(WCHAR *text,
+	int id,
+	int left,
+	int top,
+	int right,
+	int bottom,
+	int color,
+	float fontSize,
+	int fontStyle)
+{
+
+	HRESULT hr;
+	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
+	static const GUID IID_ITextAdditor =
+	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
+
+	if (pShapeFilterInterface == NULL)
+	{
+		hr = pShapeFilter->QueryInterface(IID_ITextAdditor, (void **)&pShapeFilterInterface);
+		if (FAILED(hr))
+		{
+			return hr;
+
+		}
+	}
+	
+	return pShapeFilterInterface->AddTextOverlay(text,
+											 id,
+											 left,
+											 top,
+											 right,
+											 bottom,
+											 color,
+											fontSize,
+											 fontStyle);
+
+} 
+
+HRESULT	DShowPlayer::AddTextOverlay2(WCHAR *text, int id,
+	int left,
+	int top,
+	int right,
+	int bottom,
+	int color,
+	float fontSize)
+{
+
+	HRESULT hr;
+	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
+	static const GUID IID_ITextAdditor =
+	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
+
+	if (pShapeFilterInterface == NULL)
+	{
+		hr = pShapeFilter->QueryInterface(IID_ITextAdditor, (void **)&pShapeFilterInterface);
+		if (FAILED(hr))
+		{
+			return hr;
+
+		}
+	}
+
+	return pShapeFilterInterface->AddTextOverlay2(text, id,
+												  left,
+												  top,
+												  right,
+												  bottom,
+												  color,
+												  fontSize);
+}
+
+
+HRESULT	DShowPlayer::Clear()
+{
+
+	HRESULT hr;
+
+	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
+	static const GUID IID_ITextAdditor =
+	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
+
+	if (pShapeFilterInterface == NULL)
+	{
+		hr = pShapeFilter->QueryInterface(IID_ITextAdditor, (void **)&pShapeFilterInterface);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+	return pShapeFilterInterface->Clear();
+
+
+}
+HRESULT	DShowPlayer::Remove(int id)
+{
+
+	HRESULT hr;
+	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
+	static const GUID IID_ITextAdditor =
+	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
+
+	if (pShapeFilterInterface == NULL)
+	{
+		hr = pShapeFilter->QueryInterface(IID_ITextAdditor, (void **)&pShapeFilterInterface);
+		if (FAILED(hr))
+		{
+			return hr;
+
+		}
+	}
+	return pShapeFilterInterface->Remove(id);
+
+}
+
+HRESULT	DShowPlayer::AddLine(int id,
+	int x1,
+	int y1,
+	int x2,
+	int y2,
+	int color,
+	int width)
+{
+	HRESULT hr;
+	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
+	static const GUID IID_ITextAdditor =
+	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
+
+	if (pShapeFilterInterface == NULL)
+	{
+		hr = pShapeFilter->QueryInterface(IID_ITextAdditor, (void **)&pShapeFilterInterface);
+		if (FAILED(hr))
+		{
+			return hr;
+
+		}
+	}
+	  
+
+	return pShapeFilterInterface->AddLine(id,
+		x1,
+		y1,
+		x2,
+		y2,
+		color,
+		width);
+
+}
+
+
+

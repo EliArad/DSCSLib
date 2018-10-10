@@ -14,9 +14,11 @@ using static DSCSLib.DSCS;
 namespace DSCSPlayer
 {
     public partial class Form1 : Form
-    {
+    { 
+       
         bool m_replaceWindow = false;
         DSCS m_player = new DSCS();
+     
         public Form1()
         {
             InitializeComponent();
@@ -94,8 +96,33 @@ namespace DSCSPlayer
         private void btnRTSP_Click(object sender, EventArgs e)
         {
             m_player.SetFileName(@"C:\savevideo.h264");
+            m_player.SelectDecoder(SELECTED_DECODER.LEADTOOLS);
+            //m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false, true, true, @"c:\xxx.h264");
+            m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false, true, true, @"c:\xxx.h264");
+            Rect r = new Rect(0, 0, panel1.Width, panel1.Height);
+            m_player.UpdateVideoWindow(r);
+
+
+            m_player.AddCircle(0,
+                               100,
+                               100,
+                               50,
+                               50,
+                               Color.Red,
+                               10);
+
+
+            Cross cross = new Cross(1, 2, m_player);
+            cross.Draw(200, 200, 100, Color.Green, 10);
+
+
+    }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            m_player.SetFileName(@"C:\savevideo.h264");
             m_player.SelectDecoder(SELECTED_DECODER.ELECARD);
-            m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false);            
+            m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false, false, false, "");
             Rect r = new Rect(0, 0, panel1.Width, panel1.Height);
             m_player.UpdateVideoWindow(r);
         }

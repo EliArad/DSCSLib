@@ -15,6 +15,7 @@ namespace DSCSLib
         protected bool draw = false;
         public Cross(int line1Id , int line2Id , DSCS dsc) 
         {
+            m_dsc = dsc;
             m_id[0] = line1Id;
             m_id[1] = line2Id;
         }

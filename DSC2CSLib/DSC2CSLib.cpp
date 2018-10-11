@@ -118,6 +118,11 @@ HRESULT	DSShow_Clear()
 }
 
 
+void DSShow_Close()
+{
+	return m_dsShowPlayer.Close();
+}
+
 HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
 	int left,
 	int top,

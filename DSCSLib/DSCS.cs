@@ -9,7 +9,7 @@ using System.Drawing;
 
 namespace DSCSLib
 {
-  
+
 
     public class DSCS
     {
@@ -21,10 +21,11 @@ namespace DSCSLib
             LEADTOOLS
         }
 
-        
-        const string dsPath = @"D:\Projects\DSLibrary\Debug\DSC2CSLib.dll";
-         
-        [DllImport(dsPath, CallingConvention= CallingConvention.Cdecl)]
+
+        //const string dsPath = @"D:\Projects\DSLibrary\Debug\DSC2CSLib.dll";
+        const string dsPath = @"D:\Projects\DSLibrary\Release\DSC2CSLib.dll";
+
+        [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
         public static extern int DSShow_SetFileName([MarshalAs(UnmanagedType.LPWStr)]String sFileName);
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
@@ -42,20 +43,20 @@ namespace DSCSLib
         public static extern int DSShow_InitializePlayer([MarshalAs(UnmanagedType.SysInt)]IntPtr handle);
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int DSShow_InitilizeRSTPSource([MarshalAs(UnmanagedType.SysInt)]IntPtr handle, 
-                                                            [MarshalAs(UnmanagedType.LPWStr)]String url, 
-                                                            bool audio, 
-                                                            bool shapeFilter, 
+        public static extern int DSShow_InitilizeRSTPSource([MarshalAs(UnmanagedType.SysInt)]IntPtr handle,
+                                                            [MarshalAs(UnmanagedType.LPWStr)]String url,
+                                                            bool audio,
+                                                            bool shapeFilter,
                                                             bool SaveToFile,
                                                             [MarshalAs(UnmanagedType.LPWStr)]String saveFileName);
-        
+
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
         public static extern int DSShow_SelectDecoder(int selectedDecoder);
 
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int DSShow_UpdateVideoWindow(int x , int y , int width, int height);
+        public static extern int DSShow_UpdateVideoWindow(int x, int y, int width, int height);
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
         public static extern int DSShow_AddTextOverlay(string text, int id,
@@ -103,15 +104,21 @@ namespace DSCSLib
                                                   int radios_h,
                                                   int color,
                                                   int width);
-       
 
 
 
 
 
 
+        [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int DSShow_Close();
 
 
+
+        public void Close()
+        {
+            DSShow_Close();
+        }
         public int SetFileName(string sFileName)
         {
             return DSShow_SetFileName(sFileName);

@@ -243,7 +243,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 		}		
 	}
 	 
-	hr = CreateVideoRenderer(VIDEO_RENDER::Try_VMR9);
+	hr = CreateVideoRenderer();
 	if (FAILED(hr))
 	{
 		return hr;
@@ -934,6 +934,21 @@ HRESULT DShowPlayer::InitializeGraph()
 // DShowPlayer::TearDownGraph
 // Description: Tear down the filter graph and release resources. 
 //-----------------------------------------------------------------------------
+
+
+void DShowPlayer::Close()
+{
+	 
+	SAFE_RELEASE(pAudioRenderer);
+	SAFE_RELEASE(pVideoDecoder);
+	SAFE_RELEASE(pLeadToolsRTSPSource);
+	SAFE_RELEASE(pShapeFilter);
+	SAFE_RELEASE(pInfTeeFilter);
+	SAFE_RELEASE(pSinkFilter);
+
+	TearDownGraph();
+
+}
 
 void DShowPlayer::TearDownGraph()
 {

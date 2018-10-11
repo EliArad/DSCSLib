@@ -100,6 +100,7 @@ public:
 	HRESULT InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName);
 	HRESULT InitilizePlayer(HWND hwnd);
 	
+	void Close();
 	// Streaming
 	HRESULT Play();
 	HRESULT Pause();

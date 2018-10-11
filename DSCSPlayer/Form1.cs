@@ -64,7 +64,10 @@ namespace DSCSPlayer
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (m_player != null)
+            {
                 m_player.Stop();
+                m_player.Close();
+            }
         }
 
         private void Form1_Resize(object sender, EventArgs e)
@@ -127,9 +130,14 @@ namespace DSCSPlayer
         {
             m_player.SetFileName(@"C:\savevideo.h264");
             m_player.SelectDecoder(SELECTED_DECODER.ELECARD);
-            m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false, false, false, "");
+            m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false, true, true, "c:\\1.h264");
             Rect r = new Rect(0, 0, panel1.Width, panel1.Height);
             m_player.UpdateVideoWindow(r);
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            m_player.Close();
         }
     }
 }

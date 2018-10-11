@@ -23,7 +23,7 @@ extern "C"
 	DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName);
 	DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height);
 	DSC2CSLIB_API  void DSShow_SelectDecoder(int selectedDecoder);
-
+	DSC2CSLIB_API  void DSShow_Close();
 
 	DSC2CSLIB_API HRESULT DSShow_AddCircle(int id,
 											int x1,

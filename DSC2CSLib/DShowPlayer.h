@@ -64,6 +64,11 @@ enum PlaybackState
 	STATE_CLOSED
 };
 
+enum  VIDEO_RENDER
+{
+	Try_EVR, Try_VMR9, Try_VMR7
+};
+
 struct GraphEventCallback
 {
 	virtual void OnGraphEvent(long eventCode, LONG_PTR param1, LONG_PTR param2) = 0;
@@ -163,6 +168,7 @@ private:
 	HRESULT InitializeGraph();
 	void	TearDownGraph();
     HRESULT CreateVideoRenderer();
+	HRESULT CreateVideoRenderer(VIDEO_RENDER render);
 	HRESULT	RenderStreams(IBaseFilter *pSource);
 	HRESULT UpdateVolume();
 

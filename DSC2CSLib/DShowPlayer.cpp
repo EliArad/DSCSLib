@@ -203,12 +203,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 
 
 	hr = m_pGraph->QueryInterface(IID_IFilterGraph2, (void**)&pGraph2);
-
-	// Add the video renderer to the graph
-	if (SUCCEEDED(hr))
-	{
-		hr = CreateVideoRenderer();
-	}
+	 
 
 	static const GUID CLSID_LEADTOOLS_RTSP_SOURCE =
 	{ 0xE2B7DE48, 0x38C5, 0x11D5,{ 0x91, 0xF6, 0x00, 0x10, 0x4B, 0xDB, 0x8F, 0xF9 } };
@@ -248,6 +243,11 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 		}		
 	}
 	 
+	hr = CreateVideoRenderer(VIDEO_RENDER::Try_VMR9);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
 
 
 	if (Audio == true)
@@ -289,8 +289,12 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 
 	if (SaveToFile == true)
 	{
+		 
 
-		hr = AddFilterByCLSID(m_pGraph, CLSID_InfTee, &pInfTeeFilter, L"InfTee");
+		static const GUID CLSID_INFPie =
+		{ 0xD098F8A1, 0x145E, 0x4e45,{ 0x87, 0xE4, 0x87, 0x43, 0xAA, 0x10, 0x68, 0xBA } };
+	 
+		hr = AddFilterByCLSID(m_pGraph, CLSID_INFPie, &pInfTeeFilter, L"InfTee");
 		if (FAILED(hr))
 		{
 			return hr;
@@ -332,8 +336,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 	{
 		return hr;
 	}
-
-	
+	 
 	
 
 	if (SaveToFile == true)
@@ -441,15 +444,15 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 				return hr;
 			}
 
-
+			 
 			hr = pGraph2->Connect(ppVideoDecoderOutPin, ppShapeFilterInPin);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
-
+			 
 			IPin *ppShapeFilterOutPin;
-			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppShapeFilterOutPin);
+			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppShapeFilterOutPin);
 			hr = ppShapeFilterOutPin->QueryPinInfo(&pininfo);
 			if (FAILED(hr))
 			{
@@ -533,67 +536,27 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 		hr = m_pVideo->FinalizeGraph(m_pGraph);
 	}
 
-
-	// Update our state.
-	if (SUCCEEDED(hr))
-	{
-		m_state = STATE_STOPPED;
-	}
-
-#if 0 
-	// Try to remove the audio renderer.
-	if (SUCCEEDED(hr))
-	{
-		BOOL bRemoved = FALSE;
-		hr = RemoveUnconnectedRenderer(m_pGraph, pAudioRenderer, &bRemoved);
-
-		if (bRemoved)
-		{
-			m_bAudioStream = FALSE;
-		}
-		else
-		{
-			m_bAudioStream = TRUE;
-		}
-	}
-#endif 
+	 
 	SAFE_RELEASE(pGraph2);
 	SAFE_RELEASE(pEnum);
 	//SAFE_RELEASE(pVMR);
 	SAFE_RELEASE(pAudioRenderer);
 	SAFE_RELEASE(pGraph2);
 
-	// If we succeeded to this point, make sure we rendered at least one 
-	// stream.
-	if (SUCCEEDED(hr))
-	{
-		if (!bRenderedAnyPin)
-		{
-			hr = VFW_E_CANNOT_RENDER;
-		}
-	}
-  
-
+	  
 	// Get the seeking capabilities.
 	if (SUCCEEDED(hr))
 	{
 		hr = m_pSeek->GetCapabilities(&m_seekCaps);
 	}
 
-	// Set the volume.
-	if (SUCCEEDED(hr))
-	{
-		hr = UpdateVolume();
-	}
-
+	  
 	// Update our state.
 	if (SUCCEEDED(hr))
 	{
 		m_state = STATE_STOPPED;
 	}
-
-	SAFE_RELEASE(pSource);
-
+  
 	return hr;
 }
 
@@ -1041,6 +1004,44 @@ HRESULT DShowPlayer::CreateVideoRenderer()
     return hr;
 }
 
+HRESULT DShowPlayer::CreateVideoRenderer(VIDEO_RENDER render)
+{
+	HRESULT hr = E_FAIL;
+	 
+	 
+	switch (render)
+	{
+	case Try_EVR:
+		m_pVideo = new EVR();
+		break;
+
+	case Try_VMR9:
+		m_pVideo = new VMR9();
+		break;
+
+	case Try_VMR7:
+		m_pVideo = new VMR7();
+		break;
+	}
+
+	if (m_pVideo == NULL)
+	{
+		hr = E_OUTOFMEMORY;
+		return hr;
+	}
+
+	hr = m_pVideo->AddToGraph(m_pGraph, m_hwndVideo);
+	if (SUCCEEDED(hr))
+	{
+		return hr;
+	}
+
+	SAFE_DELETE(m_pVideo);
+	 
+	 
+	return hr;
+}
+
 void DShowPlayer::SetVideoWindow(HWND hwnd)
 {
 	m_pVideo->SetVideoWindow(hwnd);
@@ -1218,7 +1219,10 @@ HRESULT	DShowPlayer::AddCircle(int id,
 {
 	HRESULT hr;
 
-	
+	if (pShapeFilter == NULL)
+	{
+		return S_FALSE;
+	}
 	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
 	static const GUID IID_ITextAdditor =
 	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
@@ -1256,6 +1260,12 @@ HRESULT	DShowPlayer::AddTextOverlay(WCHAR *text,
 {
 
 	HRESULT hr;
+
+	if (pShapeFilter == NULL)
+	{
+		return S_FALSE;
+	}
+
 	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
 	static const GUID IID_ITextAdditor =
 	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
@@ -1292,6 +1302,11 @@ HRESULT	DShowPlayer::AddTextOverlay2(WCHAR *text, int id,
 {
 
 	HRESULT hr;
+	if (pShapeFilter == NULL)
+	{
+		return S_FALSE;
+	}
+
 	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
 	static const GUID IID_ITextAdditor =
 	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
@@ -1320,6 +1335,10 @@ HRESULT	DShowPlayer::Clear()
 {
 
 	HRESULT hr;
+	if (pShapeFilter == NULL)
+	{
+		return S_FALSE;
+	}
 
 	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
 	static const GUID IID_ITextAdditor =
@@ -1341,6 +1360,11 @@ HRESULT	DShowPlayer::Remove(int id)
 {
 
 	HRESULT hr;
+	if (pShapeFilter == NULL)
+	{
+		return S_FALSE;
+	}
+
 	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
 	static const GUID IID_ITextAdditor =
 	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };
@@ -1367,6 +1391,12 @@ HRESULT	DShowPlayer::AddLine(int id,
 	int width)
 {
 	HRESULT hr;
+
+	if (pShapeFilter == NULL)
+	{
+		return S_FALSE;
+	}
+
 	// {B6F36855-D861-4ADB-B76F-5F3CF52410AC}
 	static const GUID IID_ITextAdditor =
 	{ 0xb6f36855, 0xd861, 0x4adb,{ 0xb7, 0x6f, 0x5f, 0x3c, 0xf5, 0x24, 0x10, 0xac } };

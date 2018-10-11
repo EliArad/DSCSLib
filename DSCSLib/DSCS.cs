@@ -59,18 +59,19 @@ namespace DSCSLib
         public static extern int DSShow_UpdateVideoWindow(int x, int y, int width, int height);
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int DSShow_AddTextOverlay(string text, int id,
-                                     int left,
-                                     int top,
-                                     int right,
-                                     int bottom,
-                                     int color,
-                                     float fontSize,
-                                     int fontStyle);
+        public static extern int DSShow_AddTextOverlay([MarshalAs(UnmanagedType.LPWStr)]String text,
+                                                         int id,
+                                                         int left,
+                                                         int top,
+                                                         int right,
+                                                         int bottom,
+                                                         int color,
+                                                         float fontSize,
+                                                         int fontStyle);
 
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int DSShow_AddTextOverlay2(string text, int id,
+        public static extern int DSShow_AddTextOverlay2([MarshalAs(UnmanagedType.LPWStr)]String text, int id,
                                       int left,
                                       int top,
                                       int right,
@@ -125,6 +126,16 @@ namespace DSCSLib
         }
 
         public int Play()
+        {
+            return DSShow_Play();
+        }
+
+        public int Run()
+        {
+            return DSShow_Play();
+        }
+
+        public int Start()
         {
             return DSShow_Play();
         }

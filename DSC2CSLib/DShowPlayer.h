@@ -33,6 +33,42 @@
 #include <strsafe.h>
 #include <dshow.h>
 
+
+MIDL_INTERFACE("B6F36855-D861-4ADB-B76F-5F3CF52410AC")
+IShapeSourceFilter : public IUnknown
+{
+public:
+
+
+	virtual HRESULT STDMETHODCALLTYPE AddTextOverlay(WCHAR* text, int id,
+		int    left,
+		int    top,
+		int    right,
+		int    bottom,
+		COLORREF color,
+		float fontSize,
+		int fontStyle) PURE;
+
+
+	virtual HRESULT STDMETHODCALLTYPE AddTextOverlay2(WCHAR* text,
+		int id,
+		int    left,
+		int    top,
+		int    right,
+		int    bottom,
+		COLORREF color,
+		float fontSize) PURE;
+
+
+	virtual HRESULT STDMETHODCALLTYPE Clear(void) PURE;
+	virtual HRESULT STDMETHODCALLTYPE Remove(int id) PURE;
+	virtual HRESULT STDMETHODCALLTYPE AddLine(int id, int    x1, int   y1, int    x2, int    y2, COLORREF color, int width) PURE;
+	virtual HRESULT STDMETHODCALLTYPE AddCircle(int id, int    x1, int   y1, int radios_w, int, COLORREF color, int width) PURE;
+
+
+
+};
+
 // Include the v6 common controls in the manifest
 #pragma comment(linker, \
     "\"/manifestdependency:type='Win32' "\

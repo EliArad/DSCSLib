@@ -44,11 +44,11 @@ extern "C"
 										int width);
 
 
-	HRESULT	DSShow_Remove(int id);
-	HRESULT	DSShow_Clear();
+	DSC2CSLIB_API HRESULT	DSShow_Remove(int id);
+	DSC2CSLIB_API HRESULT	DSShow_Clear();
 
 
-	HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
+	DSC2CSLIB_API HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
 		int left,
 		int top,
 		int right,
@@ -56,7 +56,7 @@ extern "C"
 		int color,
 		float fontSize);;
 
-	HRESULT	DSShow_AddTextOverlay(WCHAR *text,
+	DSC2CSLIB_API HRESULT	DSShow_AddTextOverlay(WCHAR *text,
 		int id,
 		int left,
 		int top,

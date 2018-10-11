@@ -98,7 +98,7 @@ namespace DSCSPlayer
 
         private void btnRTSP_Click(object sender, EventArgs e)
         {
-            m_player.SetFileName(@"C:\savevideo.h264");
+
             m_player.SelectDecoder(SELECTED_DECODER.ELECARD);
             //m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false, true, true, @"c:\xxx.h264");
             int hr = m_player.InitilizeRSTPSource(panel1.Handle, "rtsp://127.0.0.1:554/savevideo.h264", false, true, true, @"c:\xxx.h264");
@@ -122,6 +122,8 @@ namespace DSCSPlayer
 
             Cross cross = new Cross(1, 2, m_player);
             cross.Draw(200, 200, 100, Color.Green, 10);
+
+            m_player.AddTextOverlay("Elieeeee", 3, 200, 200, 100, 100, Color.Red, 10, 0);
 
 
     }

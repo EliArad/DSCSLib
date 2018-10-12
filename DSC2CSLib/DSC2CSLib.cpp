@@ -108,17 +108,17 @@ DSC2CSLIB_API HRESULT DSShow_AddLine(int id,
 }
 
 
-HRESULT	DSShow_Remove(int id)
+DSC2CSLIB_API HRESULT	DSShow_Visible(int id, bool visible)
 {
-	return m_dsShowPlayer.Remove(id);
+	return m_dsShowPlayer.Visible(id, visible);
 }
-HRESULT	DSShow_Clear()
+DSC2CSLIB_API HRESULT	DSShow_Clear()
 {
 	return m_dsShowPlayer.Clear();
 }
 
 
-void DSShow_Close()
+DSC2CSLIB_API void DSShow_Close()
 {
 	return m_dsShowPlayer.Close();
 }
@@ -141,7 +141,7 @@ HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
 
 }
 
-HRESULT	DSShow_AddTextOverlay(WCHAR *text,
+DSC2CSLIB_API HRESULT	DSShow_AddTextOverlay(WCHAR *text,
 	int id,
 	int left,
 	int top,
@@ -160,6 +160,12 @@ HRESULT	DSShow_AddTextOverlay(WCHAR *text,
 		color,
 		fontSize,
 		fontStyle);
+
+}
+
+DSC2CSLIB_API HRESULT DSShow_Repaint(HDC hdc)
+{
+	return m_dsShowPlayer.Repaint(hdc);
 
 }
 

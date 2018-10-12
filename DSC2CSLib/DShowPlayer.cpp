@@ -1371,7 +1371,7 @@ HRESULT	DShowPlayer::Clear()
 
 
 }
-HRESULT	DShowPlayer::Remove(int id)
+HRESULT	DShowPlayer::Visible(int id, bool visible)
 {
 
 	HRESULT hr;
@@ -1393,7 +1393,7 @@ HRESULT	DShowPlayer::Remove(int id)
 
 		}
 	}
-	return pShapeFilterInterface->Remove(id);
+	return pShapeFilterInterface->Visible(id, visible);
 
 }
 

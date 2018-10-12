@@ -44,7 +44,8 @@ extern "C"
 										int width);
 
 
-	DSC2CSLIB_API HRESULT	DSShow_Remove(int id);
+	DSC2CSLIB_API HRESULT	DSShow_Repaint(HDC hdc);
+	DSC2CSLIB_API HRESULT	DSShow_Visible(int id, bool visible);
 	DSC2CSLIB_API HRESULT	DSShow_Clear();
 
 

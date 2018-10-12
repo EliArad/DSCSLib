@@ -46,8 +46,8 @@ namespace DSCSLib
         }
         public void Remove()
         {
-            m_dsc.Remove(m_id[0]);
-            m_dsc.Remove(m_id[1]);
+            m_dsc.Visible(m_id[0], false);
+            m_dsc.Visible(m_id[1], false);
         }
     }
 }

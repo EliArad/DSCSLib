@@ -61,7 +61,7 @@ public:
 
 
 	virtual HRESULT STDMETHODCALLTYPE Clear(void) PURE;
-	virtual HRESULT STDMETHODCALLTYPE Remove(int id) PURE;
+	virtual HRESULT STDMETHODCALLTYPE Visible(int id, bool visible) PURE;
 	virtual HRESULT STDMETHODCALLTYPE AddLine(int id, int    x1, int   y1, int    x2, int    y2, COLORREF color, int width) PURE;
 	virtual HRESULT STDMETHODCALLTYPE AddCircle(int id, int    x1, int   y1, int radios_w, int, COLORREF color, int width) PURE;
 
@@ -187,7 +187,7 @@ public:
 		int width);
 
 
-	HRESULT	Remove(int id);
+	HRESULT	Visible(int id, bool visible);
 	HRESULT	Clear();
 	HRESULT	AddTextOverlay2(WCHAR *text, int id,
 		int left,

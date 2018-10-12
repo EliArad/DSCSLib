@@ -21,6 +21,11 @@ namespace DSCSLib
             LEADTOOLS
         }
 
+        public enum SHAPE_IDs
+        {
+            CIRCLE = 2,
+            DISTANCE_TEXT = 3
+        }
 
         //const string dsPath = @"D:\Projects\DSLibrary\Debug\DSC2CSLib.dll";
         const string dsPath = @"D:\Projects\DSLibrary\Release\DSC2CSLib.dll";
@@ -83,7 +88,7 @@ namespace DSCSLib
         public static extern int DSShow_Clear();
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int DSShow_Remove(int id);
+        public static extern int DSShow_Visible(int id, bool visible);
 
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
@@ -108,6 +113,8 @@ namespace DSCSLib
 
 
 
+        [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int DSShow_Repaint(IntPtr hdc);
 
 
 
@@ -158,6 +165,12 @@ namespace DSCSLib
         public int InitilizeRSTPSource(IntPtr handle, string url, bool audio, bool shapeFilter, bool SaveToFile, string saveFileName)
         {
             return DSShow_InitilizeRSTPSource(handle, url, audio, shapeFilter, SaveToFile, saveFileName);
+        }
+
+        public int Repaint(IntPtr hdc)
+        {
+            return DSShow_Repaint(hdc);
+
         }
 
         public void SelectDecoder(SELECTED_DECODER decoder)
@@ -228,11 +241,15 @@ namespace DSCSLib
         }
 
 
-        public int Remove(int id)
+        public int Visible(SHAPE_IDs id, bool visible)
         {
-            return DSShow_Remove(id);
+            return DSShow_Visible((int)id, visible);
         }
 
+        public int Visible(int id, bool visible)
+        {
+            return DSShow_Visible(id, visible);
+        }
 
         public int AddLine(int id,
                             int x1,

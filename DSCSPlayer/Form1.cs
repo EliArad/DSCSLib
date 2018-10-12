@@ -141,5 +141,18 @@ namespace DSCSPlayer
         {
             m_player.Close();
         }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+
+            Form2 f = new Form2();
+            f.SetPanel(m_player);
+            f.ShowDialog();
+            m_player.SetWindowHandle(panel1.Handle);
+            Rect r = new Rect(0, 0, panel1.Width, panel1.Height);
+            m_player.UpdateVideoWindow(r);
+
+
+        }
     }
 }

@@ -71,11 +71,11 @@ namespace DSCSLib
                     m_fsize = m_fsize + 1;
             }
         }
-        public void Draw(int  height, Color color, int width)
+        public void Draw(int  height, Color color, int width, double m_resolutionScale)
         {
             for (int i = 0; i < m_fsize; i++)
             {
-                m_cross[i].Draw(m_xy[i].x, m_xy[i].y, height, color, width);
+                m_cross[i].Draw(m_xy[i].x, m_xy[i].y, height, m_resolutionScale, color, width);
             }
             draw = true;
         }
@@ -87,9 +87,9 @@ namespace DSCSLib
             m_fsize = 0;
         }
 
-        public void DrawFirst(int height, Color color, int width)
+        public void DrawFirst(int height, Color color, int width, double m_resolutionScale)
         {
-            m_cross[0].Draw(m_xy[0].x, m_xy[0].y, height, color, width);
+            m_cross[0].Draw(m_xy[0].x, m_xy[0].y, height, m_resolutionScale, color, width);
         }
     }
 }

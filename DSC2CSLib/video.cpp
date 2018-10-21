@@ -131,7 +131,7 @@ void VMR7::SetVideoWindow(HWND hwnd)
 
 }
 
-
+CComPtr<IVMRMixerBitmap9> pBmp;
 //-----------------------------------------------------------------------------
 // InitWindowlessVMR
 // Initialize the VMR-7 for windowless mode. 
@@ -155,6 +155,7 @@ HRESULT InitWindowlessVMR(
 	{
 		hr = pConfig->SetRenderingMode(VMRMode_Windowless);
 	}
+	 
 
 	// Query for the windowless control interface.
 	if (SUCCEEDED(hr))
@@ -214,7 +215,7 @@ HRESULT VMR9::AddToGraph(IGraphBuilder *pGraph, HWND hwnd)
 	{
 		hr = InitWindowlessVMR9(pVMR, hwnd, &m_pWindowless);
 	}
-
+	 
 
 	return hr;
 }
@@ -278,7 +279,7 @@ HRESULT VMR9::UpdateVideoWindow(HWND hwnd, const LPRECT prc)
 void VMR9::SetVideoWindow(HWND hwnd)
 {
 	HRESULT hr = S_OK;
-	//hr = m_pVideoDisplay->SetVideoWindow(hwnd);
+	m_pWindowless->SetVideoClippingWindow(hwnd);
 
 }
 
@@ -331,11 +332,15 @@ HRESULT InitWindowlessVMR9(
 		hr = pConfig->SetRenderingMode(VMR9Mode_Windowless);
 	}
 
+
 	// Query for the windowless control interface.
 	if (SUCCEEDED(hr))
 	{
 		hr = pVMR->QueryInterface(IID_IVMRWindowlessControl9, (void**)&pWC);
 	}
+
+
+	hr = pVMR->QueryInterface(IID_IVMRMixerBitmap9, (void**)&pBmp);	 
 
 	// Set the clipping window.
 	if (SUCCEEDED(hr))

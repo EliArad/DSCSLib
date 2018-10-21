@@ -12,6 +12,8 @@
 
 #include "DShowPlayer.h"
 #include "DshowUtil.h"
+#include <gdiplus.h>
+
 
 
 
@@ -55,6 +57,218 @@ DShowPlayer::~DShowPlayer()
 	TearDownGraph();
 }
 
+extern CComPtr<IVMRMixerBitmap9> pBmp;
+
+
+void GetDesktopResolution(int& horizontal, int& vertical)
+{
+	RECT desktop;
+	// Get a handle to the desktop window
+	const HWND hDesktop = GetDesktopWindow();
+	// Get the size of screen to the variable desktop
+	GetWindowRect(hDesktop, &desktop);
+	// The top left corner will have coordinates (0,0)
+	// and the bottom right corner will have coordinates
+	// (horizontal, vertical)
+	horizontal = desktop.right;
+	vertical = desktop.bottom;
+}
+
+HRESULT DShowPlayer::ApplyOverlay(float alpha_opacity)
+{
+	int cx, cy;
+	HRESULT hr;
+	HBITMAP hbm;
+	RECT rcClient;
+
+	GetDesktopResolution(cx, cy);
+
+	GetClientRect(m_hwndVideo, &rcClient);
+
+	HDC hdc = GetDC(m_hwndVideo);
+
+	if (hdc == NULL)
+	{
+		return E_FAIL;
+	}
+	HDC hdcBmp = CreateCompatibleDC(hdc);
+	if (hdcBmp == NULL)
+	{
+		return E_FAIL;
+	}
+	hbm = CreateCompatibleBitmap(hdc, cx, cy);
+	BITMAP bm;
+	if (0 == GetObject(hbm, sizeof(bm), &bm))
+	{
+		DeleteDC(hdcBmp);
+		return E_FAIL;
+	}
+
+	HBITMAP hbmOld = (HBITMAP)SelectObject(hdcBmp, hbm);
+	if (hbmOld == 0)
+	{
+		DeleteDC(hdcBmp);
+		return E_FAIL;
+	}
+	//To draw line
+	//DrawLine1(100, 100, 200, 200, hdcBmp, 12);
+	map<int, Overlay*>::iterator it;
+	for (it = m_overlays.begin(); it != m_overlays.end(); it++)
+	{
+		Overlay* over = (*it).second;
+		if (over->visible == 0)
+			continue;
+
+		if (over->type == 1) // line
+		{
+
+			HPEN hPen;
+			//RGB(255, 0, 0)
+			hPen = CreatePen(PS_SOLID, over->lineWidth, over->color.ToCOLORREF());
+			SelectObject(hdcBmp, hPen);
+			 
+			MoveToEx(hdcBmp, over->x1, over->y1, NULL);
+			LineTo(hdcBmp, over->x2, over->y2);
+			DeletePen(hPen);
+		}
+		else
+		if (over->type == 2) // circle
+		{
+			HPEN hPen = CreatePen(PS_SOLID, over->lineWidth, over->color.ToCOLORREF());
+			SelectObject(hdcBmp, hPen);
+			SelectObject(hdcBmp, GetStockObject(HOLLOW_BRUSH));			
+			//Ellipse(hdcBmp , 1000 , 800 ,1400, 1000);
+			Ellipse(hdcBmp , over->x1, over->y1 , over->radios_w , over->radios_h);
+			DeletePen(hPen);
+		}
+		else
+		if (over->type == 0) // text
+		{
+			RECT rect;
+			HBRUSH hBrush;
+			HFONT hFont;
+		 
+
+#if 0 
+
+			hFont = CreateFont(over->fontSize, 0, 0, 0,
+				FW_NORMAL, FALSE, FALSE, FALSE,
+				ANSI_CHARSET, OUT_DEFAULT_PRECIS,
+				CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+				DEFAULT_PITCH | FF_ROMAN,
+				L"Times New Roman");
+#endif 
+
+			hFont = CreateFont(45, 0, 0, 0, FW_BOLD, 0, 0, 0, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
+				CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, FF_MODERN, __T("Ariel"));
+
+
+
+
+			SelectObject(hdcBmp, hFont);
+			
+		 
+			//Sets the coordinates for the rectangle in which the text is to be formatted.
+			SetRect(&rect, over->pos.X, over->pos.Y, over->pos.Width, over->pos.Height);
+			SetTextColor(hdcBmp, over->color.ToCOLORREF());
+			SetBkColor(hdcBmp, TRANSPARENT);
+			DrawText(hdcBmp, over->text, -1, &rect, DT_NOCLIP);
+			DeleteObject(hFont);
+			 
+ 
+		}
+	}
+	 
+
+ 
+
+
+	VMR9AlphaBitmap bmpInfo;
+	ZeroMemory(&bmpInfo, sizeof(bmpInfo));
+
+	bmpInfo.dwFlags = VMRBITMAP_HDC | VMRBITMAP_SRCCOLORKEY;
+
+	bmpInfo.hdc = hdcBmp;
+
+	SetRect(&bmpInfo.rSrc, 0, 0, bm.bmWidth, bm.bmHeight);
+	bmpInfo.rDest.left = 0.f;
+	bmpInfo.rDest.top = 0.f;
+	bmpInfo.rDest.right = 1.0f;
+	bmpInfo.rDest.bottom = 1.0f;
+
+	// Set the transparency value (1.0 is opaque, 0.0 is transparent).
+	bmpInfo.fAlpha = alpha_opacity;  // 1;// 0.5f;
+	bmpInfo.clrSrcKey = RGB(0, 0, 0);
+
+	if (m_pVideo != NULL)
+	{ 
+		hr = pBmp->SetAlphaBitmap(&bmpInfo);
+		if (FAILED(hr))
+		{
+			return E_FAIL;
+		}
+		//pBmp->Release();
+		//SAFE_RELEASE(pBmp);	 
+	}
+	// Clean up.
+	ReleaseDC(m_hwndVideo, hdc);
+	DeleteBitmap(hbm);
+	DeleteObject(SelectObject(hdcBmp, hbmOld));
+	DeleteDC(hdcBmp);
+}
+
+template <typename T> int sign(T val) {
+	return (T(0) < val) - (val < T(0));
+}
+
+void DShowPlayer::DrawLine1(int xx1, int yy1, int xx2, int yy2, HDC hdcBmp, int Thickness)
+{
+	RECT clntRc;
+	int temp, s1, s2, swap;
+	double dx, dy, p, x, y;
+	x = xx1;
+	y = yy1;
+	dx = abs(xx2 - xx1);
+	dy = abs(yy2 - yy1);
+	s1 = sign(xx2 - xx1);
+	s2 = sign(yy2 - yy1);
+	swap = 0;
+	if (dy > dx)
+	{
+		temp = dx;
+		dx = dy;
+		dy = temp;
+		swap = 1;
+	}
+	p = 2 * dy - dx;
+	for (int i = 0; i < dx; i++)
+	{
+		clntRc.left = x;
+		clntRc.top = y;
+		clntRc.right = x + Thickness;
+		clntRc.bottom = y + Thickness;
+		HBRUSH brush1 = CreateSolidBrush(RGB(0, 255, 0));
+		FillRect(hdcBmp, &clntRc, brush1);
+
+		while (p >= 0)
+		{
+			p = p - 2 * dx;
+			if (swap)
+				x += s1;
+			else
+				y += s2;
+		}
+		p = p + 2 * dy;
+		if (swap)
+			y += s2;
+		else
+			x += s1;
+		DeleteObject(brush1);
+	}
+
+}
+
+
 
 
 //-----------------------------------------------------------------------------
@@ -90,7 +304,7 @@ void DShowPlayer::SetFileName(const WCHAR* sFileName)
 
 HRESULT DShowPlayer::GetPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin, int num)
 {
-	IEnumPins  *pEnum = NULL;
+	CComPtr<IEnumPins>  pEnum = NULL;
 	IPin       *pPin = NULL;
 	HRESULT    hr;
 
@@ -112,29 +326,30 @@ HRESULT DShowPlayer::GetPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **p
 		hr = pPin->QueryDirection(&PinDirThis);
 		if (FAILED(hr))
 		{
-			pPin->Release();
-			pEnum->Release();
+			//pPin->Release();
+			//pEnum->Release();
 			return hr;
 		}
 		if (PinDir == PinDirThis && count == num)
 		{
 			// Found a match. Return the IPin pointer to the caller.
 			*ppPin = pPin;
-			pEnum->Release();
+			//pPin->Release();
+		    //pEnum->Release();
 			return S_OK;
 		}
 		if (PinDir == PinDirThis)
 			count++;
 		// Release the pin for the next time through the loop.
-		pPin->Release();
+		//pPin->Release();
 	}
 	// No more pins. We did not find a match.
-	pEnum->Release();
+	//pEnum->Release();
 	return E_FAIL;
 }
 
 HRESULT DShowPlayer::InitilizePlayer(HWND hwnd)
-{
+{ 
 	HRESULT hr = S_OK;
 	m_hwndVideo = hwnd;
 
@@ -177,32 +392,41 @@ HRESULT DShowPlayer::InitilizePlayer(HWND hwnd)
 
 	return hr;
 }
+ 
+ 
 
+
+ 
 
 HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd, 
 										 const WCHAR *url, 
 										 bool Audio, 
-										 bool ShapeFilter,
 										 bool SaveToFile,
 										 const WCHAR *saveFileName)
 {
 	HRESULT hr = S_OK;
 	m_hwndVideo = hwnd;
 
-	IBaseFilter *pSource = NULL;
-
+	 
 	// Create a new filter graph. (This also closes the old one, if any.)
 	hr = InitializeGraph();
 
 	// Add the source filter to the graph.
 	 
 	BOOL bRenderedAnyPin = FALSE;
-	IFileSourceFilter * pFS = NULL;
-	IFilterGraph2 *pGraph2 = NULL;
+	CComPtr<IFileSourceFilter> pFS = NULL;
+	CComPtr<IFilterGraph2> pGraph2 = NULL;
 	IEnumPins *pEnum = NULL;
 
 
 	hr = m_pGraph->QueryInterface(IID_IFilterGraph2, (void**)&pGraph2);
+
+	hr = CreateVideoRenderer(VIDEO_RENDER::Try_VMR9);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
 	 
 
 	static const GUID CLSID_LEADTOOLS_RTSP_SOURCE =
@@ -231,24 +455,9 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 	{
 		return hr;
 	}
+	//SAFE_RELEASE(pFS);
 
-	if (ShapeFilter == true)
-	{		 
-		static const GUID CLSID_ShapeFilter = {
-		  0xE52BEAB4 ,0x45FB ,0x4D5A , {0xBC,0x9E,0x23,0x81,0xE6,0x1D,0xCC ,0x47} };
-		hr = AddFilterByCLSID(m_pGraph, CLSID_ShapeFilter, &pShapeFilter, L"My Shape Filter");
-		if (FAILED(hr))
-		{
-			return hr;
-		}		
-	}
-	 
-	hr = CreateVideoRenderer();
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
+	  
 
 	if (Audio == true)
 	{	// Add the DSound Renderer to the graph.
@@ -284,9 +493,8 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 		}
 	}
 
-	 
 	
-
+	 
 	if (SaveToFile == true)
 	{
 		 
@@ -310,7 +518,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 		}
 
 	  
-		IFileSinkFilter  *iSink;
+		CComPtr<IFileSinkFilter>  iSink;
 		hr = pSinkFilter->QueryInterface(IID_IFileSinkFilter, (void **)&iSink);
 		if (FAILED(hr))
 		{
@@ -323,27 +531,37 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 		{
 			return hr;
 		}
+		//SAFE_RELEASE(iSink);
 
 	}
    
-
-	 
+ 
 	PIN_INFO pininfo;
-	IPin *ppRTSPSourceVideoOutPin;
+	CComPtr<IPin> ppRTSPSourceVideoOutPin;
 	GetPin(pLeadToolsRTSPSource, PIN_DIRECTION::PINDIR_OUTPUT, &ppRTSPSourceVideoOutPin);
 	hr = ppRTSPSourceVideoOutPin->QueryPinInfo(&pininfo);
 	if (FAILED(hr))
 	{
 		return hr;
 	}
+
+
+
+	CComPtr<IPin> ppVideoDecoderInPin;
+	GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_INPUT, &ppVideoDecoderInPin);
+	hr = ppVideoDecoderInPin->QueryPinInfo(&pininfo);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
 	 
-	
+ 
 
 	if (SaveToFile == true)
 	{
 
 
-		IPin *ppInfteeInput;
+		CComPtr<IPin> ppInfteeInput;
 		GetPin(pInfTeeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppInfteeInput);
 		hr = ppInfteeInput->QueryPinInfo(&pininfo);
 		if (FAILED(hr))
@@ -357,24 +575,17 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 			return hr;
 		}
 
-		IPin *ppinfTeeOutput1;
+		CComPtr<IPin> ppinfTeeOutput1;
 		GetPin(pInfTeeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppinfTeeOutput1);
 		hr = ppinfTeeOutput1->QueryPinInfo(&pininfo);
 		if (FAILED(hr))
 		{
 			return hr;
 		}
-	 
-		IPin *ppVideoDecoderInPin;
-		GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_INPUT, &ppVideoDecoderInPin);
-		hr = ppVideoDecoderInPin->QueryPinInfo(&pininfo);
-		if (FAILED(hr))
-		{
-			return hr;
-		}
+
 
 	 
-		IPin *ppDumpInput;
+		CComPtr<IPin> ppDumpInput;
 		GetPin(pSinkFilter, PIN_DIRECTION::PINDIR_INPUT, &ppDumpInput);
 		hr = ppDumpInput->QueryPinInfo(&pininfo);
 		if (FAILED(hr))
@@ -388,7 +599,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 			return hr;
 		}
 
-		IPin *ppinfTeeOutput2;
+		CComPtr<IPin> ppinfTeeOutput2;
 		GetPin(pInfTeeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppinfTeeOutput2, 1);
 		hr = ppinfTeeOutput2->QueryPinInfo(&pininfo);
 		if (FAILED(hr))
@@ -396,154 +607,51 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 			return hr;
 		}
 
-		if (ShapeFilter == false)
-		{
+		 
 
-			hr = pGraph2->Connect(ppinfTeeOutput2, ppVideoDecoderInPin);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-
-
-			IPin *ppVideoDecoderOutPin;
-			GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
-			hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-			hr = pGraph2->RenderEx(ppVideoDecoderOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
-
-		}
-		else		
-		{
-
-			IPin *ppShapeFilterInPin;
-			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppShapeFilterInPin);
-			hr = ppShapeFilterInPin->QueryPinInfo(&pininfo);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-			hr = pGraph2->Connect(ppinfTeeOutput2, ppVideoDecoderInPin);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-
-
-			IPin *ppVideoDecoderOutPin;
-			GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
-			hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-			 
-			hr = pGraph2->Connect(ppVideoDecoderOutPin, ppShapeFilterInPin);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-			 
-			IPin *ppShapeFilterOutPin;
-			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppShapeFilterOutPin);
-			hr = ppShapeFilterOutPin->QueryPinInfo(&pininfo);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-			 
-			hr = pGraph2->RenderEx(ppShapeFilterOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
-			//hr = pGraph2->Render(ppShapeFilterOutPin);
-
-		}
-	}
-	else 
-	{
-		// no save 
-		IPin *ppVideoDecoderInPin;
-		GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_INPUT, &ppVideoDecoderInPin);
-		hr = ppVideoDecoderInPin->QueryPinInfo(&pininfo);
+		hr = pGraph2->Connect(ppinfTeeOutput2, ppVideoDecoderInPin);
 		if (FAILED(hr))
 		{
 			return hr;
 		}
 
-		if (ShapeFilter == true)
+
+
+		CComPtr<IPin> ppVideoDecoderOutPin;
+		GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
+		hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
 		{
-			IPin *ppShapeFilterInPin;
-			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_INPUT, &ppShapeFilterInPin);
-			hr = ppShapeFilterInPin->QueryPinInfo(&pininfo);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-			hr = pGraph2->Connect(ppRTSPSourceVideoOutPin, ppShapeFilterInPin);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-			IPin *ppShapeFilterOutPin;
-			GetPin(pShapeFilter, PIN_DIRECTION::PINDIR_OUTPUT, &ppShapeFilterOutPin);
-			hr = ppShapeFilterOutPin->QueryPinInfo(&pininfo);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-			hr = pGraph2->RenderEx(ppShapeFilterOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
+			return hr;
 		}
-		else
+		hr = pGraph2->RenderEx(ppVideoDecoderOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+		 
+	}
+	else 
+	{  
+		 
+		hr = pGraph2->Connect(ppRTSPSourceVideoOutPin, ppVideoDecoderInPin);
+		if (FAILED(hr))
 		{
-			hr = pGraph2->Connect(ppRTSPSourceVideoOutPin, ppVideoDecoderInPin);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
+			return hr;
+		}
 
 
-			IPin *ppVideoDecoderOutPin;
-			GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
-			hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-			hr = pGraph2->RenderEx(ppVideoDecoderOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
-			//hr = pGraph2->Render(ppVideoDecoderOutPin);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-		}	 
-	}
-
- 
-	if (SUCCEEDED(hr))
-	{
-		hr = m_pVideo->FinalizeGraph(m_pGraph);
-	}
-
+		CComPtr<IPin> ppVideoDecoderOutPin;
+		GetPin(pVideoDecoder, PIN_DIRECTION::PINDIR_OUTPUT, &ppVideoDecoderOutPin);
+		hr = ppVideoDecoderOutPin->QueryPinInfo(&pininfo);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+		hr = pGraph2->RenderEx(ppVideoDecoderOutPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
+		//hr = pGraph2->Render(ppVideoDecoderOutPin);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+ 	}
 	 
-	SAFE_RELEASE(pGraph2);
-	SAFE_RELEASE(pEnum);
-	//SAFE_RELEASE(pVMR);
-	SAFE_RELEASE(pAudioRenderer);
-	SAFE_RELEASE(pGraph2);
-
-	  
 	// Get the seeking capabilities.
 	if (SUCCEEDED(hr))
 	{
@@ -621,6 +729,8 @@ HRESULT DShowPlayer::Play()
 	}
 
 	assert(m_pGraph); // If state is correct, the graph should exist.
+	
+	//DrawlineOverlay(m_hwndVideo , 0 , 200 ,500 , 200 );
 
 	HRESULT hr = m_pControl->Run();
 
@@ -888,7 +998,9 @@ HRESULT DShowPlayer::InitializeGraph()
 
 	TearDownGraph();
 
+	 
 	// Create the Filter Graph Manager.
+	/*
 	hr = CoCreateInstance(
 		CLSID_FilterGraph, 
 		NULL, 
@@ -896,6 +1008,11 @@ HRESULT DShowPlayer::InitializeGraph()
 		IID_IGraphBuilder,
 		(void**)&m_pGraph
 		);
+	*/
+
+	// Use its member function CoCreateInstance to
+	// create the COM object and obtain the IGraphBuilder pointer.
+	hr = m_pGraph.CoCreateInstance(CLSID_FilterGraph);
 
 	// Query for graph interfaces.
 	if (SUCCEEDED(hr))
@@ -938,15 +1055,51 @@ HRESULT DShowPlayer::InitializeGraph()
 
 void DShowPlayer::Close()
 {
-	 
-	SAFE_RELEASE(pAudioRenderer);
-	SAFE_RELEASE(pVideoDecoder);
-	SAFE_RELEASE(pLeadToolsRTSPSource);
-	SAFE_RELEASE(pShapeFilter);
-	SAFE_RELEASE(pInfTeeFilter);
-	SAFE_RELEASE(pSinkFilter);
 
+	if (pSinkFilter != NULL)
+		m_pGraph->RemoveFilter(pSinkFilter);
+
+	if (pInfTeeFilter != NULL)
+		m_pGraph->RemoveFilter(pInfTeeFilter);
+
+	if (pAudioRenderer != NULL)
+		m_pGraph->RemoveFilter(pAudioRenderer);
+
+	if (pVideoDecoder != NULL)
+		m_pGraph->RemoveFilter(pVideoDecoder);
+
+
+	//if (pLeadToolsRTSPSource != NULL)
+		//m_pGraph->RemoveFilter(pLeadToolsRTSPSource);
+
+	if (m_pVideo != NULL)
+		m_pVideo->FinalizeGraph(m_pGraph);
+	
+
+	/*
+	// Enumerate the filters in the graph.
+	CComPtr<IEnumFilters> pEnum = NULL;
+	HRESULT hr = m_pGraph->EnumFilters(&pEnum);
+	if (SUCCEEDED(hr))
+	{
+		IBaseFilter *pFilter = NULL;
+		while (S_OK == pEnum->Next(1, &pFilter, NULL))
+		{
+			FILTER_INFO FilterInfo;
+			hr = pFilter->QueryFilterInfo(&FilterInfo);
+			// Remove the filter.
+			m_pGraph->RemoveFilter(pFilter);
+			// Reset the enumerator.
+			pEnum->Reset();
+			pFilter->Release();
+		}
+		//pEnum->Release();
+	}
+	*/
+	
 	TearDownGraph();
+
+	CoUninitialize();
 
 }
 
@@ -957,13 +1110,7 @@ void DShowPlayer::TearDownGraph()
 	{
 		m_pEvent->SetNotifyWindow((OAHWND)NULL, NULL, NULL);
 	}
-
-	SAFE_RELEASE(m_pGraph);
-	SAFE_RELEASE(m_pControl);
-	SAFE_RELEASE(m_pEvent);
-	SAFE_RELEASE(m_pSeek);
-	if (m_pAudio != NULL)
-		SAFE_RELEASE(m_pAudio);
+	 
 
     SAFE_DELETE(m_pVideo);
 
@@ -1225,8 +1372,8 @@ HRESULT RemoveUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer,
 
 
 HRESULT	DShowPlayer::AddCircle(int id,
-	int x1,
-	int y1,
+	int x,
+	int y,
 	int radios_w,
 	int radios_h,
 	COLORREF color,
@@ -1234,6 +1381,48 @@ HRESULT	DShowPlayer::AddCircle(int id,
 {
 	HRESULT hr;
 
+	map<int, Overlay*>::iterator it;
+	if ((it = m_overlays.find(id)) != m_overlays.end()) // id already in the map
+	{
+		Overlay* over = (*it).second;
+		over->type = 2;
+		over->visible = 1;
+		over->color.SetFromCOLORREF(color);
+		over->fontSize = 0;
+
+		over->x1 = x;
+		over->y1 = y;
+		over->radios_w = radios_w;
+		over->radios_h = radios_h;
+		over->lineWidth = width;
+
+		m_overlays[id] = over;
+
+		return S_OK;
+	}
+	else {
+
+		Overlay* overlay = new Overlay();
+		overlay->type = 2;
+		overlay->visible = 1;
+		overlay->color.SetFromCOLORREF(color);
+		overlay->fontSize = 0;
+
+		overlay->x1 = x;
+		overlay->y1 = y;
+		overlay->radios_w = radios_w;
+		overlay->radios_h = radios_h;
+		overlay->lineWidth = width;
+
+		m_overlays[id] = overlay;
+
+		return S_OK;
+}
+
+
+
+
+#if 0 
 	if (pShapeFilter == NULL)
 	{
 		return S_FALSE;
@@ -1261,6 +1450,8 @@ HRESULT	DShowPlayer::AddCircle(int id,
 		color,
 		width);
 
+#endif 
+
 }
  
 HRESULT	DShowPlayer::AddTextOverlay(WCHAR *text,
@@ -1275,6 +1466,39 @@ HRESULT	DShowPlayer::AddTextOverlay(WCHAR *text,
 {
 
 	HRESULT hr;
+
+	map<int, Overlay*>::iterator it;
+	if ((it = m_overlays.find(id)) != m_overlays.end()) // id already in the map
+	{
+
+		Overlay* over = (*it).second;
+		over->type = 0;
+		over->visible = 1;
+		over->fontStyle = fontStyle;
+		over->color.SetFromCOLORREF(color);
+		over->fontSize = fontSize;
+		RectF rcBounds(left, top, right, bottom);
+		over->pos = rcBounds;
+		m_overlays[id] = over;
+
+	}
+	else {
+
+		Overlay* overlay = new Overlay(text);
+		overlay->type = 0;
+		overlay->visible = 1;
+		overlay->fontStyle = fontStyle;
+		overlay->color.SetFromCOLORREF(color);
+		overlay->fontSize = fontSize;
+		RectF rcBounds(left, top, right, bottom);
+		overlay->pos = rcBounds;
+		m_overlays[id] = overlay;
+
+	}
+
+	return S_OK;
+
+#if 0 
 
 	if (pShapeFilter == NULL)
 	{
@@ -1305,6 +1529,8 @@ HRESULT	DShowPlayer::AddTextOverlay(WCHAR *text,
 											fontSize,
 											 fontStyle);
 
+
+	#endif 
 } 
 
 HRESULT	DShowPlayer::AddTextOverlay2(WCHAR *text, int id,
@@ -1316,6 +1542,38 @@ HRESULT	DShowPlayer::AddTextOverlay2(WCHAR *text, int id,
 	float fontSize)
 {
 
+
+	map<int, Overlay*>::iterator it;
+	if ((it = m_overlays.find(id)) != m_overlays.end()) // id already in the map
+	{
+		Overlay* over = (*it).second;
+		over->type = 0;
+		over->visible = 1;
+		over->fontStyle = FontStyle::FontStyleRegular;
+		over->color.SetFromCOLORREF(color);
+		over->fontSize = fontSize;
+		RectF rcBounds(left, top, right, bottom);
+		over->pos = rcBounds;
+		m_overlays[id] = over;
+
+	}
+	else
+	{
+
+		Overlay* overlay = new Overlay(text);
+		overlay->type = 0;
+		overlay->visible = 1;
+		overlay->fontStyle = FontStyle::FontStyleRegular;
+		overlay->color.SetFromCOLORREF(color);
+		overlay->fontSize = fontSize;
+		RectF rcBounds(left, top, right, bottom);
+		overlay->pos = rcBounds;
+		m_overlays[id] = overlay;
+	}
+
+	return S_OK;
+
+#if 0 
 	HRESULT hr;
 	if (pShapeFilter == NULL)
 	{
@@ -1343,12 +1601,21 @@ HRESULT	DShowPlayer::AddTextOverlay2(WCHAR *text, int id,
 												  bottom,
 												  color,
 												  fontSize);
+	#endif 
 }
 
 
 HRESULT	DShowPlayer::Clear()
 {
 
+	map<int, Overlay*>::iterator it;
+	for (it = m_overlays.begin(); it != m_overlays.end(); it++)
+	{
+		Overlay* over = (*it).second;
+		over->visible = 0;
+	}
+	return S_OK;
+#if 0 
 	HRESULT hr;
 	if (pShapeFilter == NULL)
 	{
@@ -1368,12 +1635,19 @@ HRESULT	DShowPlayer::Clear()
 		}
 	}
 	return pShapeFilterInterface->Clear();
-
+#endif 
 
 }
 HRESULT	DShowPlayer::Visible(int id, bool visible)
 {
-
+	 
+	if (m_overlays[id] != NULL)
+	{
+		m_overlays[id]->visible = visible;
+		 
+	}
+	return S_OK;
+#if 0 
 	HRESULT hr;
 	if (pShapeFilter == NULL)
 	{
@@ -1394,6 +1668,7 @@ HRESULT	DShowPlayer::Visible(int id, bool visible)
 		}
 	}
 	return pShapeFilterInterface->Visible(id, visible);
+#endif 
 
 }
 
@@ -1406,6 +1681,50 @@ HRESULT	DShowPlayer::AddLine(int id,
 	int width)
 {
 	HRESULT hr;
+	 
+
+	map<int, Overlay*>::iterator it;
+	if ((it = m_overlays.find(id)) != m_overlays.end()) // id already in the map
+	{
+		Overlay* over = (*it).second;
+		over->type = 1;
+		over->visible = 1;
+		over->color.SetFromCOLORREF(color);
+		over->fontSize = 0;
+
+		over->x1 = x1;
+		over->x2 = x2;
+		over->y1 = y1;
+		over->y2 = y2;
+		over->lineWidth = width;
+
+		m_overlays[id] = over;
+
+		return S_OK;
+	}
+	else {
+
+		Overlay* overlay = new Overlay();
+		overlay->type = 1;
+		overlay->visible = 1;
+		overlay->color.SetFromCOLORREF(color);
+		overlay->fontSize = 0;
+
+		overlay->x1 = x1;
+		overlay->x2 = x2;
+		overlay->y1 = y1;
+		overlay->y2 = y2;
+		overlay->lineWidth = width;
+
+		m_overlays[id] = overlay;
+
+		return S_OK;
+	}
+	 
+	
+
+#if 0 
+	
 
 	if (pShapeFilter == NULL)
 	{
@@ -1422,7 +1741,6 @@ HRESULT	DShowPlayer::AddLine(int id,
 		if (FAILED(hr))
 		{
 			return hr;
-
 		}
 	}
 	  
@@ -1434,8 +1752,9 @@ HRESULT	DShowPlayer::AddLine(int id,
 		y2,
 		color,
 		width);
+#endif 
 
 }
 
-
-
+ 
+ 

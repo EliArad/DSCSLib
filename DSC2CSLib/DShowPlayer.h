@@ -13,7 +13,7 @@
 #pragma once
 
 #ifndef WINVER				// Allow use of features specific to Windows 95 and Windows NT 4 or later.
-#define WINVER 0x0501		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
+#define WINVER 0x0A00		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
 #endif
 
 #ifndef _WIN32_WINNT		// Allow use of features specific to Windows NT 4 or later.
@@ -28,10 +28,18 @@
 #define _WIN32_IE 0x0501	// Change this to the appropriate value to target IE 5.0 or later.
 #endif
 
+ 
+ 
+
 // Windows Header Files:
 #include <windows.h>
 #include <strsafe.h>
 #include <dshow.h>
+#include <atlbase.h>
+#include "Overlay.h"
+
+#include <map>
+using namespace std;
 
 
 MIDL_INTERFACE("B6F36855-D861-4ADB-B76F-5F3CF52410AC")
@@ -64,7 +72,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE Visible(int id, bool visible) PURE;
 	virtual HRESULT STDMETHODCALLTYPE AddLine(int id, int    x1, int   y1, int    x2, int    y2, COLORREF color, int width) PURE;
 	virtual HRESULT STDMETHODCALLTYPE AddCircle(int id, int    x1, int   y1, int radios_w, int, COLORREF color, int width) PURE;
-
+	virtual HRESULT STDMETHODCALLTYPE Close();
 
 
 };
@@ -133,8 +141,9 @@ public:
 	PlaybackState State() const { return m_state; }
 
 	void SetFileName(const WCHAR* sFileName);
-	HRESULT InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName);
+	HRESULT InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio,  bool SaveToFile, const WCHAR *saveFileName);
 	HRESULT InitilizePlayer(HWND hwnd);
+	
 	
 	void Close();
 	// Streaming
@@ -151,6 +160,8 @@ public:
 	void SetVideoWindow(HWND hwnd);
 	// events
 	HRESULT HandleGraphEvent(GraphEventCallback *pCB);
+
+	HRESULT ApplyOverlay(float alpha_opacity);
 
 	// seeking
 	BOOL	CanSeek() const;
@@ -200,7 +211,9 @@ public:
 	 
 
 private:
-
+	
+	void DrawLine1(int xx1, int yy1, int xx2, int yy2, HDC hdcBmp, int Thickness);
+	map<int, Overlay*> m_overlays;
 	HRESULT GetPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin, int num = 0);
 	HRESULT InitializeGraph();
 	void	TearDownGraph();
@@ -224,21 +237,22 @@ private:
 	long			m_lVolume;		// Current volume (unless muted)
 	BOOL			m_bMute;		// Volume muted?		
 
-	IGraphBuilder	*m_pGraph;
-	IMediaControl	*m_pControl;
-	IMediaEventEx	*m_pEvent;
-	IMediaSeeking	*m_pSeek;
-	IBasicAudio		*m_pAudio;
+	CComPtr<IMediaControl> pControl;
 
-	IBaseFilter *pAudioRenderer;
-	IBaseFilter *pVideoDecoder;
-	IBaseFilter *pLeadToolsRTSPSource;
-	IBaseFilter *pShapeFilter;
-	IBaseFilter *pInfTeeFilter;
-	IBaseFilter *pSinkFilter;
+	CComPtr<IGraphBuilder> m_pGraph;
+	CComPtr<IMediaControl> m_pControl;
+	CComPtr<IMediaEventEx> m_pEvent;
+	CComPtr<IMediaSeeking> m_pSeek;
+	CComPtr<IBasicAudio> m_pAudio;
+
+	CComPtr<IBaseFilter> pAudioRenderer;
+	CComPtr<IBaseFilter> pVideoDecoder;
+	CComPtr<IBaseFilter> pLeadToolsRTSPSource;
+	CComPtr<IBaseFilter> pInfTeeFilter;
+	CComPtr<IBaseFilter> pSinkFilter;
 	 
-    BaseVideoRenderer   *m_pVideo;
-	IShapeSourceFilter * pShapeFilterInterface;
+	BaseVideoRenderer *m_pVideo;
+	CComPtr<IShapeSourceFilter>  pShapeFilterInterface;
 
 };
 

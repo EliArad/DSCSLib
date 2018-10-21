@@ -13,6 +13,7 @@ namespace DSCSLib
 
     public class DSCS
     {
+        bool m_videoInitialized = false;
 
         public enum SELECTED_DECODER
         {
@@ -23,6 +24,8 @@ namespace DSCSLib
 
         public enum SHAPE_IDs
         {
+            LINE1,
+            LINE2,
             CIRCLE = 2,
             DISTANCE_TEXT = 3
         }
@@ -51,7 +54,6 @@ namespace DSCSLib
         public static extern int DSShow_InitilizeRSTPSource([MarshalAs(UnmanagedType.SysInt)]IntPtr handle,
                                                             [MarshalAs(UnmanagedType.LPWStr)]String url,
                                                             bool audio,
-                                                            bool shapeFilter,
                                                             bool SaveToFile,
                                                             [MarshalAs(UnmanagedType.LPWStr)]String saveFileName);
 
@@ -114,6 +116,10 @@ namespace DSCSLib
 
 
         [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int DSShow_ApplyOverlay(float alpha_opacity);
+
+
+        [DllImport(dsPath, CallingConvention = CallingConvention.Cdecl)]
         public static extern int DSShow_Repaint(IntPtr hdc);
 
 
@@ -125,66 +131,129 @@ namespace DSCSLib
 
         public void Close()
         {
-            DSShow_Close();
+            lock (this)
+            {
+                if (m_videoInitialized == true)
+                    DSShow_Close();
+            }
         }
         public int SetFileName(string sFileName)
         {
-            return DSShow_SetFileName(sFileName);
+            lock (this)
+            {
+                return DSShow_SetFileName(sFileName);
+            }
         }
 
         public int Play()
         {
-            return DSShow_Play();
+            lock (this)
+            {
+                return DSShow_Play();
+            }
         }
 
         public int Run()
         {
-            return DSShow_Play();
+            lock (this)
+            {
+                return DSShow_Play();
+            }
         }
 
         public int Start()
         {
-            return DSShow_Play();
+            lock (this)
+            {
+                return DSShow_Play();
+            }
         }
 
 
         public int Pause()
         {
-            return DSShow_Pause();
+            lock (this)
+            {
+                return DSShow_Pause();
+            }
         }
 
         public int Stop()
         {
-            return DSShow_Stop();
+            lock (this)
+            {
+                return DSShow_Stop();
+            }
         }
         public int InitializePlayer(IntPtr handle)
         {
-            return DSShow_InitializePlayer(handle);
+            lock (this)
+            {
+                int r = DSShow_InitializePlayer(handle);
+                if (r == 0)
+                {
+                    m_videoInitialized = true;
+                }
+                return r;
+            }
         }
 
-        public int InitilizeRSTPSource(IntPtr handle, string url, bool audio, bool shapeFilter, bool SaveToFile, string saveFileName)
+        public int InitilizeRSTPSource(IntPtr handle, string url, bool audio,  bool SaveToFile, string saveFileName)
         {
-            return DSShow_InitilizeRSTPSource(handle, url, audio, shapeFilter, SaveToFile, saveFileName);
+            lock (this)
+            {
+                int r = DSShow_InitilizeRSTPSource(handle, url, audio,  SaveToFile, saveFileName);
+                if (r == 0)
+                {
+                    m_videoInitialized = true;
+                }
+                return r;
+            }
         }
 
         public int Repaint(IntPtr hdc)
         {
-            return DSShow_Repaint(hdc);
+            lock (this)
+            {
+                if (m_videoInitialized == false)
+                    return 0;
+                return DSShow_Repaint(hdc);
+            }
 
         }
 
         public void SelectDecoder(SELECTED_DECODER decoder)
         {
-            DSShow_SelectDecoder((int)decoder);
+            lock (this)
+            {
+                DSShow_SelectDecoder((int)decoder);
+            }
         }
         public void SetWindowHandle(IntPtr handle)
         {
-            DSShow_SetWindowHandle(handle);
+            lock (this)
+            {
+                try
+                {
+                    if (m_videoInitialized == false)
+                        return;
+                    DSShow_SetWindowHandle(handle);
+                }
+                catch (Exception err)
+                {
+                    Logger.Instance.Write("Set window handle: " + err.Message);
+                }
+            }
         }
 
         public void UpdateVideoWindow(Rect prc)
         {
-            DSShow_UpdateVideoWindow((int)prc.X , (int)prc.Y, (int)prc.Width, (int)prc.Height);
+            lock (this)
+            {
+                if (m_videoInitialized == false)
+                    return;
+                DSShow_UpdateVideoWindow((int)prc.X, (int)prc.Y, (int)prc.Width, (int)prc.Height);
+            }
         }
          
         public int AddTextOverlay(string text, 
@@ -198,17 +267,20 @@ namespace DSCSLib
                                     int fontStyle)
         {
 
-            int c = color.B << 16 | color.G << 8 | color.R;
+            lock (this)
+            {
+                int c = color.B << 16 | color.G << 8 | color.R;
 
-            return DSShow_AddTextOverlay(text, 
-                                         id,
-                                         left,
-                                         top,
-                                         right,
-                                         bottom,
-                                         c,
-                                         fontSize,
-                                         fontStyle);
+                return DSShow_AddTextOverlay(text,
+                                             id,
+                                             left,
+                                             top,
+                                             right,
+                                             bottom,
+                                             c,
+                                             fontSize,
+                                             fontStyle);
+            }
         }
 
 
@@ -222,33 +294,53 @@ namespace DSCSLib
                                        float fontSize)
         {
 
-            int c = color.B << 16 | color.G << 8 | color.R;
+            lock (this)
+            {
+                int c = color.B << 16 | color.G << 8 | color.R;
 
-            return DSShow_AddTextOverlay2(text, 
-                                    id,
-                                    left,
-                                    top,
-                                    right,
-                                    bottom,
-                                    c,
-                                    fontSize);
+                return DSShow_AddTextOverlay2(text,
+                                        id,
+                                        left,
+                                        top,
+                                        right,
+                                        bottom,
+                                        c,
+                                        fontSize);
+            }
         }
 
 
+        public int ApplyOverlay(float alpha_opacity = 1f)
+        {
+            lock (this)
+            {
+                return DSShow_ApplyOverlay(alpha_opacity);
+            }
+        }
+
         public int Clear()
         {
-            return DSShow_Clear();
+            lock (this)
+            {
+                return DSShow_Clear();
+            }
         }
 
 
         public int Visible(SHAPE_IDs id, bool visible)
         {
-            return DSShow_Visible((int)id, visible);
+            lock (this)
+            {
+                return DSShow_Visible((int)id, visible);
+            }
         }
 
         public int Visible(int id, bool visible)
         {
-            return DSShow_Visible(id, visible);
+            lock (this)
+            {
+                return DSShow_Visible(id, visible);
+            }
         }
 
         public int AddLine(int id,
@@ -259,40 +351,42 @@ namespace DSCSLib
                             Color color,
                             int width)
         {
-            int c = color.B << 16 | color.G << 8 | color.R;
-            return DSShow_AddLine(id,
-                                   x1,
-                                   y1,
-                                   x2,
-                                   y2,
-                                   c,
-                                   width);
+            lock (this)
+            {
+                int c = color.B << 16 | color.G << 8 | color.R;
+                return DSShow_AddLine(id,
+                                       x1,
+                                       y1,
+                                       x2,
+                                       y2,
+                                       c,
+                                       width);
+            }
 
         }
-
-
      
         public int AddCircle(int id,
-                       int x1,
-                       int y1,
-                       int radios_w,
-                       int radios_h,
-                       Color color,
-                       int width)
+                             int x1,
+                             int y1,
+                             int radios_w,
+                             int radios_h,
+                             Color color,
+                             int width)
         {
 
-           int c = color.B << 16 | color.G << 8 | color.R;
-           return  DSShow_AddCircle(id,
-                                    x1,
-                                    y1,
-                                    radios_w,
-                                    radios_h,
-                                    c,
-                                    width);
+            lock (this)
+            {
+                int c = color.B << 16 | color.G << 8 | color.R;
+                return DSShow_AddCircle(id,
+                                         x1,
+                                         y1,
+                                         radios_w,
+                                         radios_h,
+                                         c,
+                                         width);
+            }
 
         }
-
-
 
     }
 }

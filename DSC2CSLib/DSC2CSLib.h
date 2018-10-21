@@ -20,10 +20,12 @@ extern "C"
 	DSC2CSLIB_API void DSShow_SetWindowHandle(HWND hwnd);
 	DSC2CSLIB_API void DSShow_SetFileName(const WCHAR* sFileName);
 	DSC2CSLIB_API HRESULT DSShow_InitializePlayer(HWND hwnd);
-	DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName);
+	DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool SaveToFile, const WCHAR *saveFileName);
 	DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height);
 	DSC2CSLIB_API  void DSShow_SelectDecoder(int selectedDecoder);
 	DSC2CSLIB_API  void DSShow_Close();
+
+	DSC2CSLIB_API  HRESULT DSShow_ApplyOverlay(float alpha_opacity);
 
 	DSC2CSLIB_API HRESULT DSShow_AddCircle(int id,
 											int x1,

@@ -6,7 +6,7 @@
 #include "DShowPlayer.h"
 
 
-DShowPlayer m_dsShowPlayer;
+DShowPlayer *m_dsShowPlayer;
 
 // This is an example of an exported function.
 DSC2CSLIB_API int Test(void)
@@ -16,38 +16,52 @@ DSC2CSLIB_API int Test(void)
 
 DSC2CSLIB_API void DSShow_SetFileName(const WCHAR* sFileName)
 {
-	m_dsShowPlayer.SetFileName(sFileName);
+	if (m_dsShowPlayer == NULL) return;
+	m_dsShowPlayer->SetFileName(sFileName);
 
 }
 
 DSC2CSLIB_API HRESULT DSShow_Play()
 {
-	return m_dsShowPlayer.Play();
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->Play();
 }
 
 DSC2CSLIB_API HRESULT DSShow_Pause()
 {
-	return m_dsShowPlayer.Pause();
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->Pause();
 }
 
 DSC2CSLIB_API HRESULT DSShow_Stop()
 {
-	return m_dsShowPlayer.Stop();
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->Stop();
 }
 
 DSC2CSLIB_API void DSShow_SetWindowHandle(HWND hwnd)
 { 
-	m_dsShowPlayer.SetWindowHandle(hwnd);
+	if (m_dsShowPlayer == NULL) return;
+	m_dsShowPlayer->SetWindowHandle(hwnd);
 }
 
 DSC2CSLIB_API HRESULT DSShow_InitializePlayer(HWND hwnd)
 {
-	return m_dsShowPlayer.InitilizePlayer(hwnd);
+	if (m_dsShowPlayer == NULL)
+	{
+		m_dsShowPlayer = new DShowPlayer();
+	}
+	 
+	return m_dsShowPlayer->InitilizePlayer(hwnd);
 } 
 
-DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool ShapeFilter, bool SaveToFile, const WCHAR *saveFileName)
+DSC2CSLIB_API HRESULT DSShow_InitilizeRSTPSource(HWND hwnd, const WCHAR *url, bool Audio, bool SaveToFile, const WCHAR *saveFileName)
 {
-	return m_dsShowPlayer.InitilizeRSTPSource(hwnd, url, Audio , ShapeFilter, SaveToFile, saveFileName);
+	if (m_dsShowPlayer == NULL)
+	{
+		m_dsShowPlayer = new DShowPlayer();
+	}
+	return m_dsShowPlayer->InitilizeRSTPSource(hwnd, url, Audio , SaveToFile, saveFileName);
 }
 
 DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height)
@@ -57,14 +71,20 @@ DSC2CSLIB_API  void DSShow_UpdateVideoWindow(int x, int y, int width, int height
 	r.top = y;
 	r.right = width;
 	r.bottom = height;
-
-	m_dsShowPlayer.UpdateVideoWindow((LPRECT)&r);
+	
+	if (m_dsShowPlayer == NULL) return;
+	m_dsShowPlayer->UpdateVideoWindow((LPRECT)&r);
 }
  
 
 DSC2CSLIB_API  void DSShow_SelectDecoder(int selectedDecoder)
 {
-	m_dsShowPlayer.SelectDecoder((SELECTED_DECODER)selectedDecoder);
+	if (m_dsShowPlayer == NULL)
+	{
+		m_dsShowPlayer = new DShowPlayer();
+	}
+
+	m_dsShowPlayer->SelectDecoder((SELECTED_DECODER)selectedDecoder);
 }
 
 
@@ -78,8 +98,8 @@ DSC2CSLIB_API HRESULT DSShow_AddCircle(int id,
 									   int width)
 {
 
-
-	return m_dsShowPlayer.AddCircle(id,
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->AddCircle(id,
 									 x1,
 									 y1,
 									 radios_w,
@@ -98,7 +118,8 @@ DSC2CSLIB_API HRESULT DSShow_AddLine(int id,
 	int width)
 {
 
-	return m_dsShowPlayer.AddLine(id,
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->AddLine(id,
 		x1,
 		y1,
 		x2,
@@ -110,17 +131,26 @@ DSC2CSLIB_API HRESULT DSShow_AddLine(int id,
 
 DSC2CSLIB_API HRESULT	DSShow_Visible(int id, bool visible)
 {
-	return m_dsShowPlayer.Visible(id, visible);
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->Visible(id, visible);
 }
 DSC2CSLIB_API HRESULT	DSShow_Clear()
 {
-	return m_dsShowPlayer.Clear();
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->Clear();
 }
 
 
 DSC2CSLIB_API void DSShow_Close()
 {
-	return m_dsShowPlayer.Close();
+	if (m_dsShowPlayer == NULL) return;
+	m_dsShowPlayer->Close();
+
+	delete m_dsShowPlayer;
+	m_dsShowPlayer = NULL;
+
+	 
+	return;
 }
 
 HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
@@ -131,7 +161,8 @@ HRESULT	DSShow_AddTextOverlay2(WCHAR *text, int id,
 	int color,
 	float fontSize)
 {
-	return m_dsShowPlayer.AddTextOverlay2(text, id,
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->AddTextOverlay2(text, id,
 		 left,
 		 top,
 		 right,
@@ -151,7 +182,9 @@ DSC2CSLIB_API HRESULT	DSShow_AddTextOverlay(WCHAR *text,
 	float fontSize,
 	int fontStyle)
 {
-	return m_dsShowPlayer.AddTextOverlay(text,
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+
+	return m_dsShowPlayer->AddTextOverlay(text,
 		id,
 		left,
 		top,
@@ -162,10 +195,17 @@ DSC2CSLIB_API HRESULT	DSShow_AddTextOverlay(WCHAR *text,
 		fontStyle);
 
 }
+ 
 
 DSC2CSLIB_API HRESULT DSShow_Repaint(HDC hdc)
 {
-	return m_dsShowPlayer.Repaint(hdc);
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->Repaint(hdc);
 
 }
 
+DSC2CSLIB_API  HRESULT DSShow_ApplyOverlay(float alpha_opacity)
+{
+	if (m_dsShowPlayer == NULL) return S_FALSE;
+	return m_dsShowPlayer->ApplyOverlay(alpha_opacity);
+}

@@ -57,7 +57,7 @@ DShowPlayer::~DShowPlayer()
 	TearDownGraph();
 }
 
-extern CComPtr<IVMRMixerBitmap9> pBmp;
+extern IVMRMixerBitmap9  *pBmp;
 
 
 void GetDesktopResolution(int& horizontal, int& vertical)
@@ -96,7 +96,7 @@ HRESULT DShowPlayer::ApplyOverlay(float alpha_opacity)
 	{
 		return E_FAIL;
 	}
-	hbm = CreateCompatibleBitmap(hdc, cx, cy);
+	hbm = CreateCompatibleBitmap(hdc, rcClient.right, rcClient.bottom);
 	BITMAP bm;
 	if (0 == GetObject(hbm, sizeof(bm), &bm))
 	{
@@ -511,7 +511,7 @@ HRESULT DShowPlayer::InitilizeRSTPSource(HWND hwnd,
 		static const GUID CLSID_SinkFilter =
 		{ 0x36A5F770,0xFE4C,0x11CE,{ 0xA8,0xED, 0x00, 0xAA, 0x00, 0x2F, 0xEA, 0xB5 } };
 
-		hr = AddFilterByCLSID(m_pGraph, CLSID_SinkFilter, &pSinkFilter, L"Sink Filter");
+		hr = AddFilterByCLSID(m_pGraph, CLSID_SinkFilter, &pSinkFilter, L"Dump Filter");
 		if (FAILED(hr))
 		{
 			return hr;
@@ -1075,6 +1075,7 @@ void DShowPlayer::Close()
 	if (m_pVideo != NULL)
 		m_pVideo->FinalizeGraph(m_pGraph);
 	
+	SAFE_RELEASE(pBmp);
 
 	/*
 	// Enumerate the filters in the graph.

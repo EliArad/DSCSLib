@@ -75,7 +75,7 @@ namespace DSCSLib
         {
             for (int i = 0; i < m_fsize; i++)
             {
-                m_cross[i].Draw(m_xy[i].x, m_xy[i].y, height, m_resolutionScale, color, width);
+                m_cross[i].Draw(m_xy[i].x, m_xy[i].y, height, color, width);
             }
             draw = true;
         }
@@ -89,7 +89,7 @@ namespace DSCSLib
 
         public void DrawFirst(int height, Color color, int width, double m_resolutionScale)
         {
-            m_cross[0].Draw(m_xy[0].x, m_xy[0].y, height, m_resolutionScale, color, width);
+            m_cross[0].Draw(m_xy[0].x, m_xy[0].y, height, color, width);
         }
     }
 }

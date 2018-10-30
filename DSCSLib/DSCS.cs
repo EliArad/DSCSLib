@@ -241,7 +241,6 @@ namespace DSCSLib
                 }
                 catch (Exception err)
                 {
-                    Logger.Instance.Write("Set window handle: " + err.Message);
                 }
             }
         }

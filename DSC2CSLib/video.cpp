@@ -14,7 +14,7 @@
 #include <Mfidl.h>
 
 HRESULT InitializeEVR(IBaseFilter *pEVR, HWND hwnd, IMFVideoDisplayControl ** ppWc);
-HRESULT InitWindowlessVMR9(IBaseFilter *pVMR, HWND hwnd, IVMRWindowlessControl9 ** ppWc);
+HRESULT InitWindowlessVMR9(CComPtr<IBaseFilter>, HWND hwnd, IVMRWindowlessControl9 ** ppWc);
 HRESULT InitWindowlessVMR(IBaseFilter *pVMR, HWND hwnd, IVMRWindowlessControl** ppWc);
 
 /// VMR-7 Wrapper
@@ -131,7 +131,7 @@ void VMR7::SetVideoWindow(HWND hwnd)
 
 }
 
-CComPtr<IVMRMixerBitmap9> pBmp;
+IVMRMixerBitmap9  *pBmp = NULL;
 //-----------------------------------------------------------------------------
 // InitWindowlessVMR
 // Initialize the VMR-7 for windowless mode. 
@@ -206,7 +206,7 @@ HRESULT VMR9::AddToGraph(IGraphBuilder *pGraph, HWND hwnd)
 {
 	HRESULT hr = S_OK;
 
-	IBaseFilter *pVMR = NULL;
+	CComPtr<IBaseFilter> pVMR = NULL;
 
 	hr = AddFilterByCLSID(pGraph, CLSID_VideoMixingRenderer9, &pVMR, L"VMR-9");
 
@@ -314,13 +314,13 @@ HRESULT VMR9::DisplayModeChanged()
 //-----------------------------------------------------------------------------
 
 HRESULT InitWindowlessVMR9(
-	IBaseFilter *pVMR,				// Pointer to the VMR
+	CComPtr<IBaseFilter> pVMR,				// Pointer to the VMR
 	HWND hwnd,						// Clipping window
 	IVMRWindowlessControl9** ppWC	// Receives a pointer to the VMR.
 )
 {
 
-	IVMRFilterConfig9 * pConfig = NULL;
+	CComPtr<IVMRFilterConfig9>  pConfig = NULL;
 	IVMRWindowlessControl9 *pWC = NULL;
 
 	HRESULT hr = S_OK;
@@ -361,7 +361,7 @@ HRESULT InitWindowlessVMR9(
 		(*ppWC)->AddRef();
 	}
 
-	SAFE_RELEASE(pConfig);
+	//SAFE_RELEASE(pConfig);
 	SAFE_RELEASE(pWC);
 
 	return hr;

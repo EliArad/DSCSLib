@@ -121,7 +121,7 @@ namespace DSCSPlayer
             
 
             m_cross = new Cross(1, 2, m_player);
-            m_cross.Draw(200, 200, 100, m_resolutionScale, Color.Green, 10);
+            m_cross.Draw(200, 200, 100, Color.Green, 10);
             m_player.AddTextOverlay("Eli Arad", 3, 200, 200, 400, 100, Color.Blue, 40, 0);
 
             m_player.ApplyOverlay(1f);
@@ -167,7 +167,7 @@ namespace DSCSPlayer
         {
             if (m_mouseDown == true)
             {
-                m_cross.Draw(e.X, e.Y, 100, m_resolutionScale, Color.Green, 10);
+                m_cross.Draw(e.X, e.Y, 100, Color.Green, 10);
                 m_player.ApplyOverlay(1f);
             }
         }
